@@ -91,6 +91,7 @@ android-sdk/
 .env.production
 .env.test
 .env.*.local
+!**/.env.example
 
 # Python
 .venv/
@@ -111,6 +112,10 @@ build/
 uploads/
 tmp/
 *.log
+
+# Local CleanSheet runtime configuration
+backend/.env
+frontend/.env
 
 # Local credentials
 memory/test_credentials.md

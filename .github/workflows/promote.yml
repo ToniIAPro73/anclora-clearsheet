@@ -1,0 +1,61 @@
+name: Promote branches
+
+on:
+  workflow_dispatch:
+    inputs:
+      target:
+        description: 'Promotion target'
+        required: true
+        type: choice
+        options: [staging, production, main]
+
+permissions:
+  contents: write
+  checks: read
+
+jobs:
+  promote:
+    name: fast-forward promotion
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: false
+      - name: Resolve promotion source
+        id: refs
+        env:
+          TARGET: ${{ inputs.target }}
+        run: |
+          case "$TARGET" in
+            staging) SOURCE=development ;;
+            production) SOURCE=staging ;;
+            main) SOURCE=production ;;
+            *) echo "Unsupported target: $TARGET" >&2; exit 1 ;;
+          esac
+          echo "source=$SOURCE" >> "$GITHUB_OUTPUT"
+          echo "target=$TARGET" >> "$GITHUB_OUTPUT"
+      - name: Validate source CI checks
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SOURCE: ${{ steps.refs.outputs.source }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          SHA="$(git rev-parse "origin/$SOURCE")"
+          checks="$(gh api --paginate "repos/$REPOSITORY/commits/$SHA/check-runs" --jq '.check_runs[] | [.name, .status, .conclusion] | @tsv')"
+          echo "$checks"
+          test -n "$checks"
+          for required in 'CI / frontend' 'CI / backend'; do
+            line="$(printf '%s\n' "$checks" | awk -F '\t' -v name="$required" '$1 == name { print; exit }')"
+            test -n "$line" || { echo "Missing check: $required" >&2; exit 1; }
+            test "$(printf '%s' "$line" | cut -f2)" = completed || { echo "Check not completed: $required" >&2; exit 1; }
+            test "$(printf '%s' "$line" | cut -f3)" = success || { echo "Check not successful: $required" >&2; exit 1; }
+          done
+      - name: Fast-forward target only
+        env:
+          SOURCE: ${{ steps.refs.outputs.source }}
+          TARGET: ${{ steps.refs.outputs.target }}
+        run: |
+          git fetch origin "$SOURCE" "$TARGET"
+          git merge-base --is-ancestor "origin/$TARGET" "origin/$SOURCE"
+          git push origin "origin/$SOURCE:refs/heads/$TARGET"
