@@ -1,0 +1,31 @@
+{
+  "summary": "Full suite for Column Aliasing (Phase 1), Webhook Execution Inspector (Phase 2), and Scoped Delegation Storage Security verified. All 51 backend tests pass 100% across test_aliasing_and_inspector.py (5/5), test_direct_blob_streaming.py (2/2), test_schema_validator.py (4/4), test_storage_adapters.py (4/4), test_csv_dialect.py (6/6), test_hardening_phase2.py (8/8), test_hardening_security.py (5/5), backend_test.py (17/17). Aliasing tests validate clean match, ambiguity, conflict/collision, type mismatch, and cross-user isolation on /api/automations/{id}/executions. Frontend: login as demo@anclora.com works, Webhook Automations tab renders 7 automations with 'Inspeccionar' buttons (data-testid inspector-execution-card-*), clicking opens Inspector drawer (data-testid=webhook-inspector-drawer) with sanitized metadata (empty state shown for automations without runs; no secrets or cell values in DOM). Scoped delegation endpoint /api/storage/direct-upload-url returns storage_key, upload_url, provider without exposing any global blob token; production Vercel path attaches 15-min TTL HMAC delegation signature scoped to PUT+pathname+expiry+250MB cap (storage.py:166-208).",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "test_report_links": [
+    "/app/backend/tests/test_aliasing_and_inspector.py",
+    "/app/backend/tests/test_direct_blob_streaming.py",
+    "/app/backend/tests/test_schema_validator.py",
+    "/app/backend/tests/test_storage_adapters.py",
+    "/app/backend/tests/test_csv_dialect.py",
+    "/app/backend/tests/test_hardening_phase2.py",
+    "/app/backend/tests/test_hardening_security.py",
+    "/app/backend/tests/backend_test.py",
+    "/app/test_reports/pytest/pytest_iter8.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "SchemaCompatibilityService.evaluate now emits applied_aliases (candidate_name -> canonical) and drift_items with 'Ambigüedad de alias' and 'Conflicto de alias' messages; single source of truth reused by manual/batch/webhook flows.",
+    "GET /api/automations/{id}/executions returns 403/404 for non-owners and only operational metadata (execution_id, timestamp, filename, size, recipe_name, hmac_status, anti_replay_status, schema_compatibility, drift_detected, applied_aliases, rows_in/out, duration, sanitized status). Verified no cell values or secrets (assertions on 'CLI-9999' and 'sec_insp_key' absence in inspector payload).",
+    "Scoped delegation in storage.py: 15-min TTL, HMAC(sha256) over PUT:key:expires:content_type, max_size_bytes=250MB, per-object pathname; production Vercel returns signed URL, local dev returns internal /api/storage/direct-upload/{key}?signature=..&expires=.. — global blob token never returned to client.",
+    "Frontend AutomationsView.js correctly wires 'Inspeccionar' button -> axios GET with withCredentials -> renders drawer with data-testid attributes for testability.",
+    "Note: legacy 'compatible_with_warnings' label still coexists with drift_eval.status; UI reads drift_eval directly which is correct."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "100% (51/51)", "frontend": "100% (login + inspector drawer smoke)"},
+  "test_credentials": "demo@anclora.com / CleanSheet2026!",
+  "seed_data_creation": "Tests create ephemeral users user1_insp@test.com / user2_insp@test.com and Recipe 'Recipe Insp' + AutomationWebhook 'WH Insp' idempotently.",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "All 51 tests green. Phase 1 aliasing (clean/ambiguous/conflict/type-mismatch) + Phase 2 inspector (metadata + isolation) + scoped delegation (15min TTL, PUT-only, 250MB, per-UUID pathname) fully verified. Frontend inspector drawer confirmed via Playwright at production preview URL."
+}

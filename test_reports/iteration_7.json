@@ -1,0 +1,41 @@
+{
+  "summary": "Phase 1 (Schema Validation Alert) and Phase 2 (Direct Vercel Private Blob Streaming) verified. All 46 backend tests pass 100%: test_schema_validator.py (4/4 - compatible, warning-on-added, blocking-on-missing-required, type-drift), test_direct_blob_streaming.py (2/2 - signed direct upload credentials + browser PUT to storage + private path verification), test_storage_adapters.py (4/4), test_csv_dialect.py (6/6), test_hardening_security.py (5/5 - includes webhook drop HMAC + batch partial results manifest), test_hardening_phase2.py (8/8), backend_test.py (17/17). Webhook drop with blocking drift halts with 422 + drift_items payload (server.py:1049-1058) and does not process silently. Batch endpoint records drift warnings in manifest and per-file blocking drift produces status=failed with descriptive error while other valid files continue (server.py:625-640). Benchmark 25/100/250MB executed successfully: 25MB 4.0s +107MB RSS, 100MB 17.0s +164MB RSS, 250MB 50.9s +472MB RSS, rows_in == rows_out integrity preserved (4,032,984 rows @ 250MB). Frontend loads correctly at preview URL with all 4 nav tabs (Limpiar archivo, Stream CSV, Procesamiento por Lotes, Webhook Automations).",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "/api/files/stream-process", "issue": "250MB benchmark shows +472MB RSS delta; incremental disk writes correct but pandas chunks not aggressively released. rows integrity preserved. Non-blocking, documented from iter6."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_schema_validator.py",
+    "/app/backend/tests/test_direct_blob_streaming.py",
+    "/app/backend/tests/test_storage_adapters.py",
+    "/app/backend/tests/test_csv_dialect.py",
+    "/app/backend/tests/test_hardening_security.py",
+    "/app/backend/tests/test_hardening_phase2.py",
+    "/app/backend/tests/backend_test.py",
+    "/app/backend/tests/benchmark_phase1_2.py",
+    "/app/test_reports/pytest/pytest_iter7.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "SchemaCompatibilityService (schema_validator.py) is a well-factored unified service reused by manual UI preview (server.py:441), batch (server.py:624) and webhook drop (server.py:1047) - single source of truth for drift classification (compatible/warning/blocking).",
+    "Webhook drop blocking drift returns HTTP 422 with structured detail {message, drift_items, missing_columns} (server.py:1051-1058) — meets spec of halting execution and not processing silently.",
+    "Batch endpoint per-file drift handling is correct: blocking drift produces failed manifest entry with continue (server.py:625-637) so other valid files proceed; warnings appended to manifest.warnings + processed_items.warnings (server.py:665,678).",
+    "Direct blob streaming endpoint (/api/storage/direct-upload-url + PUT /api/storage/direct-upload/{key}) issues UUID-based private storage_key and accepts streamed PUT bypassing server RAM buffering — matches Phase 2 contract.",
+    "Minor: type_drift branch (schema_validator.py:135) always sets 'warning' — never 'blocking' even for critical decimal->text on a required numeric column. Consider promoting to blocking when the drifted column is declared required in recipe schema. Not blocking for MVP.",
+    "Minor: response body uses inconsistent legacy status labels alongside new drift_eval (server.py:444 maps to 'compatible_with_warnings' / 'incompatible'). Ensure the UI reads drift_eval.status directly to avoid dual-source-of-truth."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "100% (46/46)", "frontend": "100% (smoke)"},
+  "test_credentials": "demo@anclora.com / CleanSheet2026! (verified via test_login_demo in backend_test.py)",
+  "seed_data_creation": "None (tests generate ephemeral CSV payloads and clean up)",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "All Phase 1 & 2 tests + regression suite pass 46/46. Webhook 422-on-blocking-drift and batch per-file drift handling both verified by test_hardening_security.test_batch_partial_results_and_manifest and code review of server.py. Frontend not exhaustively exercised for Phase1/2 UI drift banners — main agent may want to add explicit UI test that displays warning drift_items in the execution result panel."
+}

@@ -1,0 +1,32 @@
+{
+  "summary": "Auto Delimiter Dialect Detection + Multi-scale Streaming verification. Backend pytest: 36/36 PASSED (17 core backend + 5 hardening_security + 8 hardening_phase2 + 6 NEW test_csv_dialect: comma, semicolon, tab, pipe, manual override, UTF-8 BOM). Public URL smoke: POST /api/files/detect-dialect returns delimiter/confidence/consistency_score/candidates with Alta/Media/Baja levels and ambiguity_warning; manual_delimiter form param correctly overrides (confidence 1.0, level Alta). POST /api/files/stream-process accepts optional manual_delimiter (Form) and processes semicolon CSV correctly (HTTP 200, normalized comma-CSV output). Frontend Stream CSV (Grandes) tab: uploading a semicolon CSV triggers auto-detection call, shows confidence badge 'Alta (90%)', delimiter 'Punto y coma (;)', encoding UTF-8, consistency 100% (3 columnas), and manual delimiter <select> with 4 options; 'Iniciar Stream Normalización' completes successfully.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "StreamParsingView", "issues": ["Still uses native <input type=file> (Choose File) rather than styled dropzone consistent with home upload area — cosmetic only, carried over from prior iteration."]}
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_csv_dialect.py",
+    "/app/backend/tests/backend_test.py",
+    "/app/backend/tests/test_hardening_phase2.py",
+    "/app/backend/tests/test_hardening_security.py",
+    "/app/test_reports/pytest/pytest_results.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "csv_detector.py returns 'col_count' only in success path; fallback branches (Sniffer/manual override/empty) omit 'col_count', which the frontend safely renders as undefined. Consider always emitting col_count (0 or 1) for schema consistency.",
+    "server.py still >1000 lines; recommend splitting into APIRouters (auth/files/recipes/automations/webhooks/stream).",
+    "detect-dialect endpoint is anonymous like stream-process — confirm intentional given file upload cost.",
+    "benchmark_scale_250mb.py is a script (not pytest), not covered in test suite run; ok as manual/benchmark tool."
+  ],
+  "updated_files": ["/app/test_reports/iteration_5.json", "/app/test_reports/pytest/pytest_results.xml"],
+  "success_rate": {"backend": "100% (36/36)", "frontend": "100% (Stream CSV dialect UI + manual override + normalization completed)"},
+  "test_credentials": "demo@anclora.com / CleanSheet2026! verified via /api/auth/login",
+  "seed_data_creation": "Uploaded semicolon and pipe/comma variants via public URL for dialect detection smoke tests.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "All Auto Delimiter Dialect Detection requirements verified. 36/36 pytest pass. Endpoints /api/files/detect-dialect and /api/files/stream-process accept optional manual_delimiter Form parameter (not query). Frontend StreamParsingView triggers detection on file selection and exposes manual override <select>. No regressions in prior hardening/security/batch suites."
+}

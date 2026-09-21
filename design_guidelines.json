@@ -1,0 +1,149 @@
+{
+  "project_name": "Anclora CleanSheet",
+  "app_type": "saas_app",
+  "tech_stack": {
+    "framework": "React.js (JavaScript, .js files)",
+    "styling": "Tailwind CSS + Lucide React + Radix UI / Shadcn",
+    "animations": "Framer Motion",
+    "data_visualization": "Recharts / Custom Data Grids"
+  },
+  "theme_configuration": {
+    "default_mode": "dark",
+    "supported_modes": ["dark", "light", "system"],
+    "dark_mode_palette": {
+      "canvas_background": "#080D18",
+      "surface_card": "#0B1220",
+      "surface_elevated": "#0E1525",
+      "header_background": "#0E1525",
+      "border_cyan_blue": "#3B82F6",
+      "border_cyan_light": "#38BDF8",
+      "text_primary": "#F8FAFC",
+      "text_secondary": "#94A3B8",
+      "text_muted": "#64748B",
+      "accent_primary": "#3B82F6",
+      "accent_cyan": "#38BDF8",
+      "accent_glow": "rgba(56, 189, 248, 0.15)"
+    },
+    "light_mode_palette": {
+      "canvas_background": "#F8FAFC",
+      "surface_card": "#FFFFFF",
+      "surface_elevated": "#F1F5F9",
+      "header_background": "#FFFFFF",
+      "border_cyan_blue": "#3B82F6",
+      "border_cyan_light": "#0EA5E9",
+      "text_primary": "#0F172A",
+      "text_secondary": "#475569",
+      "text_muted": "#64748B",
+      "accent_primary": "#2563EB",
+      "accent_cyan": "#0EA5E9"
+    },
+    "confidence_badges": {
+      "alta_high": {
+        "bg": "rgba(34, 197, 94, 0.12)",
+        "text": "#4ADE80",
+        "border": "rgba(34, 197, 94, 0.3)",
+        "label_es": "Confianza Alta",
+        "label_en": "High Confidence"
+      },
+      "media_medium": {
+        "bg": "rgba(245, 158, 11, 0.12)",
+        "text": "#FBBF24",
+        "border": "rgba(245, 158, 11, 0.3)",
+        "label_es": "Confianza Media",
+        "label_en": "Medium Confidence"
+      },
+      "baja_low": {
+        "bg": "rgba(239, 68, 68, 0.12)",
+        "text": "#F87171",
+        "border": "rgba(239, 68, 68, 0.3)",
+        "label_es": "Confianza Baja",
+        "label_en": "Low Confidence"
+      }
+    }
+  },
+  "typography": {
+    "heading_font": "Outfit, sans-serif",
+    "body_font": "Plus Jakarta Sans, sans-serif",
+    "mono_font": "JetBrains Mono, monospace",
+    "scales": {
+      "h1": "text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight",
+      "h2": "text-2xl sm:text-3xl font-bold tracking-tight",
+      "h3": "text-xl sm:text-2xl font-semibold",
+      "h4": "text-lg font-semibold",
+      "body": "text-sm sm:text-base leading-relaxed",
+      "caption": "text-xs font-medium text-slate-400"
+    }
+  },
+  "key_components_layout": {
+    "sticky_header": {
+      "description": "Sticky top bar with cyan/blue gradient line bottom border on #0E1525 background",
+      "elements": [
+        "Brand Logo & Title: Anclora CleanSheet with cyan accent icon",
+        "Language Selector: Pill toggle [ES | EN]",
+        "Theme Switcher: Circular toggle button (Dark / Light / System)",
+        "Auth Action Button: Sign In / User Profile menu"
+      ]
+    },
+    "upload_zone": {
+      "description": "Interactive Drag & Drop area supporting CSV / XLSX files",
+      "features": [
+        "Sheet selection selector dropdown when multi-sheet XLSX uploaded",
+        "Sample dataset quick-loader pills (ERP Export, Bank Statement, CRM Leads)",
+        "Structure fingerprint indicator showing initial row/column counts"
+      ]
+    },
+    "before_after_comparison_grid": {
+      "description": "Dual-view interactive spreadsheet viewer",
+      "desktop_layout": "Split view (Side-by-side or Top/Bottom toggle) with cell diff highlights",
+      "mobile_layout": "Tabbed view [ Antes / Before ] vs [ Después / After ]",
+      "diff_highlighting": {
+        "added": "bg-emerald-500/10 text-emerald-400 border-l-2 border-emerald-500",
+        "modified": "bg-sky-500/15 text-sky-300 border-l-2 border-sky-400",
+        "removed": "bg-rose-500/10 text-rose-400 line-through opacity-70",
+        "flagged_warning": "bg-amber-500/15 text-amber-300 border-l-2 border-amber-400"
+      }
+    },
+    "interactive_rules_panel": {
+      "description": "Side panel or bottom panel with real-time recalculation (300ms debounce)",
+      "preset_mode": "Hybrid Conservative Preset",
+      "rule_groups": [
+        "Region & Locale Format (es-ES, en-US, etc.)",
+        "Header & Title Row Trimming (detect multi-level headers, skip title banners)",
+        "Date Standardization (propose YYYY-MM-DD, warn on ambiguous dates)",
+        "Number & Separator Normalization (decimal vs thousands separator cleanup)",
+        "Column Renaming & Case Controls (disabled by default per conservative preset)",
+        "Empty Rows & Columns Elimination"
+      ]
+    },
+    "recipe_exporter_and_manager": {
+      "description": "Export clean data or export reproducible logic",
+      "export_formats": ["Cleaned CSV", "Cleaned Excel", "Recipe YAML", "Python Pandas Script"],
+      "recipe_features": ["Structure Fingerprint compatibility check", "Save recipe to user account", "One-click reapplication"]
+    },
+    "execution_history": {
+      "description": "Log of past cleanings with audit details, original filenames, timestamps, and confidence scores"
+    }
+  },
+  "image_urls": {
+    "hero_analytics_screen": {
+      "url": "https://images.unsplash.com/photo-1551288049-bebda4e38f71?crop=entropy&cs=srgb&fm=jpg&q=85",
+      "description": "Data analytics and spreadsheet monitoring screen"
+    },
+    "dashboard_data_sheet": {
+      "url": "https://images.unsplash.com/photo-1526628953301-3e589a6a8b74?crop=entropy&cs=srgb&fm=jpg&q=85",
+      "description": "Clean modern data table interface representation"
+    }
+  },
+  "UNIVERSAL GUIDELINES FOR MAIN AGENT": [
+    "All React code MUST be in .js / .jsx format (do not use TypeScript .tsx files).",
+    "Ensure ALL interactive elements and data indicators include concise, kebab-case data-testid attributes (e.g. data-testid='upload-dropzone', data-testid='theme-toggle-button', data-testid='lang-toggle-pill', data-testid='rule-toggle-date-format', data-testid='confidence-badge').",
+    "Follow the Conservative Hybrid Preset defaults: auto-detect regional formats, date formats, decimal separators, but present them as reviewable proposals. Do not auto-rename or convert column names to snake_case unless explicitly toggled by user.",
+    "Maintain high visual density for data grids with tabular-nums font features, compact padding (px-3 py-2), sticky header columns, and dark mode palette defaults (#080D18, #0B1220, #0E1525).",
+    "Provide responsive split view for desktop and full tab switching for mobile in the Before/After comparison grid.",
+    "Implement real-time debounced recalculation (300ms) when toggling cleaning rules in the Rules Panel.",
+    "Provide modal dialogs for YAML and Python script export with copy-to-clipboard and file download triggers.",
+    "Include sample data pre-loads so users can immediately test cleaning without needing an initial CSV file on hand.",
+    "In the header bar, ensure the sticky bar background is #0E1525 with a distinct bottom border gradient utilizing #3B82F6 and #38BDF8.",
+    "Include both English (EN) and Spanish (ES) internationalization strings throughout all UI components."
+  ]
+}

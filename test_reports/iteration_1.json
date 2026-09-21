@@ -1,0 +1,38 @@
+{
+  "summary": "First-run E2E testing for Anclora CleanSheet MVP. Backend: 13/13 pytest cases passed against public URL (status, auth, sample ERP, analyze, preview recalc, xlsx/csv export, recipes CRUD, compatibility, upload). Frontend: Playwright verified page load, ES/EN toggle, theme dark/light toggle, sample ERP load with heuristic analysis (17 changes badge, analysis summary visible), rule editing (skip_rows) with debounced recalc, YAML modal + Python-with-pandas modal, XLSX and CSV downloads, login with demo credentials, save recipe to account, and Recipes tab listing the saved recipe. All core functional flows work end-to-end.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "CORS middleware", "issue": "CORSMiddleware configured with allow_origins=['*'] AND allow_credentials=True. This combination is rejected by browsers per spec and will break auth cookies when frontend is served from a different origin than the API. Currently works because preview URL routes /api on the same origin. Explicit origins list should be used with credentials."},
+      {"endpoint": "/api/samples/{sample_type}", "issue": "Manually calls next(get_db()) without closing the session (leaks a SQLAlchemy session per sample request). Use Depends(get_db) for consistency."},
+      {"endpoint": "backend/.env", "issue": "Leftover MONGO_URL / DB_NAME variables from template though project uses SQLAlchemy/SQLite. Harmless but misleading."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [
+      {"flow": "Cell-change audit (ComparisonGrid)", "issue": "Clicking a non-changed normalized cell does not display the cell-change-audit-box (data-testid=cell-change-audit-box). This may be intended (only changed cells reveal audit) but there is no user hint that clicks are only meaningful on highlighted/changed cells. Consider showing the audit box on any click with an 'unchanged cell' message.", "affected_selectors": ["[data-testid=cell-change-audit-box]"]}
+    ],
+    "design_issues": []
+  },
+  "test_report_links": ["/app/backend/tests/backend_test.py", "/app/test_reports/pytest/pytest_results.xml"],
+  "action_items": [
+    "Tighten CORS: replace allow_origins=['*'] with explicit list (frontend origin) since allow_credentials=True is set — required for future cross-origin deployments.",
+    "In /api/samples/{sample_type} use Depends(get_db) instead of next(get_db()) to prevent session leaks.",
+    "Optional UX: guide users to click changed (highlighted) cells for the audit panel, or always show the audit panel with 'no change' state."
+  ],
+  "critical_code_review_comments": [
+    "server.py CORS: '*' + allow_credentials=True is spec-invalid; will fail on cross-origin browsers.",
+    "server.py get_sample_data manually invokes next(get_db()) without closing — session leak.",
+    "backend/.env still contains unused MONGO_URL/DB_NAME — clean up to avoid confusion.",
+    "server.py FILE_CACHE is in-memory (dict); ok for MVP but will break in multi-worker deployments and grows unbounded — add TTL/cleanup or move to Redis for production.",
+    "Auth uses long-lived JWT_SECRET default embedded in code; ensure env override is enforced in production."
+  ],
+  "updated_files": ["/app/backend/tests/backend_test.py", "/app/test_reports/iteration_1.json", "/app/test_reports/pytest/pytest_results.xml"],
+  "success_rate": {"backend": "100% (13/13)", "frontend": "100% of tested flows (14/14) — cell audit shown only for changed cells is arguably a UX gap, not a failure"},
+  "test_credentials": "demo@anclora.com / CleanSheet2026! (seeded, verified working)",
+  "seed_data_creation": "Created and cleaned up a temporary user via /api/auth/register (test_user_<random>@example.com) and a TEST_UI_Recipe saved from the UI; both cleaned up post-run.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "All primary flows green on preview URL. Priority follow-ups are CORS hardening and session-leak fix in /api/samples. When retesting, verify cell-change-audit-box visibility on a clearly changed cell (e.g., a European-decimal amount like '1.250,50' -> '1250.50') by clicking that highlighted cell in table-normalized-container."
+}

@@ -1,0 +1,32 @@
+{
+  "summary": "Phase 2 hardening + Stream Parsing verification. Backend pytest suite: 30/30 PASSED (8 new hardening_phase2 tests: anti-replay nonce rejection, replay with same nonce, crypto-at-rest for webhook secrets, RateLimitStore interface, OOXML valid structure, OOXML fake ZIP missing workbook, ZIP bomb entry-count protection, /api/files/stream-process CSV; plus 5 hardening_security tests and 17 core backend tests). Public URL smoke: POST /api/files/stream-process accepts CSV and returns clean normalized CSV (HTTP 200). POST /api/automations returns secret_key ONCE on creation and GET /api/automations returns only secret_preview (masked sec_XXX...XXXX), confirming crypto-at-rest. Frontend: Nav shows 'Stream CSV (Grandes)', 'Procesamiento por Lotes', 'Webhook Automations'. Stream CSV tab renders with 250 MB messaging, file picker, and 'Iniciar Stream Normalización' CTA using Polars chunked strategy.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "StreamParsingView", "issues": ["Uses native <input type='file'> (Choose File) instead of styled dropzone consistent with home upload area — cosmetic only."]}
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/backend_test.py",
+    "/app/backend/tests/test_hardening_phase2.py",
+    "/app/backend/tests/test_hardening_security.py",
+    "/app/test_reports/pytest/pytest_results.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "recipe_service.py is 434 lines and server.py is 1029 lines — server.py >700 lines threshold; consider splitting routes (auth, files, recipes, automations, webhooks, stream) into APIRouters.",
+    "crypto_service.py (34 lines) is minimal — verify the encryption key is loaded from env (not hardcoded) and rotated safely; test_crypto_at_rest_encryption confirms round-trip but does not assert ciphertext != plaintext at DB layer.",
+    "Stream endpoint /api/files/stream-process appears to work anonymously (no auth cookie required in smoke). Confirm if that is intentional; large-file endpoints usually require auth + quota.",
+    "POST /api/recipes requires 'recipe_yaml' field (not 'rules') — consider consistent naming vs UI schemas.",
+    "TestClient tests share the dev SQLite DB (cleansheet.db); test_hardening_phase2 automations accumulate — recommend a scoped test DB fixture."
+  ],
+  "updated_files": ["/app/test_reports/iteration_4.json", "/app/test_reports/pytest/pytest_results.xml"],
+  "success_rate": {"backend": "100% (30/30)", "frontend": "100% of nav + Stream tab render"},
+  "test_credentials": "demo@anclora.com / CleanSheet2026! (verified via /api/auth/login and cookie session)",
+  "seed_data_creation": "Created TEST_R_verify2 recipe + TEST_verify_secret automation via public URL to confirm secret_key returned once and masked in list.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "All Phase 2 hardening + stream parsing requirements verified. 30/30 pytest passing. Stream CSV endpoint and Stream CSV (Grandes) tab confirmed. Automations secret_key exposed only on create/regenerate; list returns secret_preview mask. Next agents can use /app/backend/tests/ as regression."
+}

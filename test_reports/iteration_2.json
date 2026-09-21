@@ -1,0 +1,50 @@
+{
+  "summary": "Iteration 2 E2E testing for new Batch Processing and Automations (Webhook Drops) features. Backend: 17/17 pytest cases green (4 new: batch process + zip download, batch download 404, automations auth guard, full automation lifecycle + webhook drop + 404 after delete). Frontend: Batch tab renders with data-testids, multi-file upload works, POST /api/batch/process returns 2 processed files with valid ZIP download link. Automations tab renders correct auth-gate for anonymous users; after login and creating a recipe, create button enables, modal creates webhook, card shows public webhook URL + curl snippet, copy button works, delete confirms and removes card. runs_count increments after webhook drop (verified in backend test).",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "/api/batch/process", "issue": "No storage_key persistence per processed_item is recorded in DB (Execution rows are not created for each batch item), unlike single-file /api/files/export. History view will miss batch runs."},
+      {"endpoint": "/api/batch/process", "issue": "Files with unsupported extensions are silently skipped (no error surfaced to caller). Better to include them in results with an 'error' field."},
+      {"endpoint": "/api/batch/process", "issue": "Sequential processing inside a single request loop — for large batches (10+ big files) will be slow. Feature name suggests 'concurrently'; consider asyncio.gather with polars in a thread pool."},
+      {"endpoint": "/api/webhooks/drop/{token}", "issue": "No rate-limiting or auth on token; anyone with the token can trigger unlimited executions. Consider signed HMAC header or per-token throttling for production."},
+      {"endpoint": "/api/automations", "issue": "No PATCH endpoint to toggle is_active or rename an automation — only create/list/delete are exposed."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "AutomationsView card", "issues": ["Webhook URL box uses a fixed dark bg (#080D18) even in light theme, causing inconsistent look on light mode.", "curl snippet block similarly hard-codes dark palette."]},
+      {"screen": "BatchProcessingView", "issues": ["Native <select> elements used for recipe/format instead of shadcn Select components used elsewhere — slight inconsistency."]}
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/backend_test.py",
+    "/app/test_reports/pytest/pytest_results.xml"
+  ],
+  "action_items": [
+    "Optional: persist Execution rows for each batch-processed file so the History tab reflects batch runs.",
+    "Optional: return skipped/unsupported files with error info in /api/batch/process response instead of silent drop.",
+    "Optional: add lightweight auth (HMAC signature or per-token secret) and rate-limiting to /api/webhooks/drop/{token}.",
+    "Optional: expose PATCH /api/automations/{id} to toggle is_active and rename.",
+    "Optional (UI): theme-aware colors for webhook URL/curl snippet boxes in AutomationsView; migrate BatchProcessingView selects to shadcn Select for consistency."
+  ],
+  "critical_code_review_comments": [
+    "server.py L604: batch_process wraps the whole loop in one zipfile.ZipFile 'w' context — good — but on parse errors mid-loop the endpoint will 500 instead of continuing; wrap each file in try/except and append error entries to results.",
+    "server.py L644: individual per-file storage_key is saved to disk but never referenced from the response beyond returning the key — no endpoint to fetch a single processed file, forcing users to unzip the batch archive.",
+    "server.py L757: AutomationWebhook.is_active is stored as Integer(1/0); comparing with `== 1` works but a Boolean column would be cleaner.",
+    "server.py L811: webhook_drop commits webhook.runs_count and recipe.execution_count in the same transaction as the Execution insert — good — but no error surface if content-type isn't multipart/form-data (FastAPI 422). Should return a clearer 400 message for API consumers.",
+    "Previous iteration notes still apply: FILE_CACHE in-memory dict, JWT_SECRET default fallback, and /api/samples still uses next(get_db())."
+  ],
+  "updated_files": [
+    "/app/backend/tests/backend_test.py",
+    "/app/test_reports/iteration_2.json",
+    "/app/test_reports/pytest/pytest_results.xml"
+  ],
+  "success_rate": {"backend": "100% (17/17)", "frontend": "100% of tested flows (batch upload+process+zip, automations auth-gate, create/list/copy/delete card)"},
+  "test_credentials": "demo@anclora.com / CleanSheet2026! (verified working)",
+  "seed_data_creation": "During UI test seeded 'TEST_UI_Auto_Recipe' via API to enable the create-automation flow; deleted post-test. TEST_UI_Webhook automation created via UI and deleted via UI. Pytest fixtures create and clean 'TEST_ERP_Recipe', 'TEST_Auto_Recipe' and 'TEST_Webhook_ERP'.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "New endpoints /api/batch/process, /api/batch/download/{key}, /api/automations (POST/GET/DELETE), /api/webhooks/drop/{token} are all covered by pytest and Playwright. All flows green. The webhook token is public — a bad actor with the URL can execute recipes; consider adding auth. The demo account starts with no recipes after test cleanup, so 'Nuevo Webhook Drop' button will be disabled until a recipe is saved (this is correct behavior, guarded by amber warning banner)."
+}

@@ -1,0 +1,29 @@
+{
+  "summary": "Hardening validation iteration 3. Backend pytest suite: 22/22 PASSED including all 5 new hardening tests (HMAC valid/invalid signature, replay attack >300s drift protection, webhook drop with HMAC + tampered payload rejection 401, recipe ownership 403 on cross-user batch, batch partial success producing ZIP with manifest.json + manifest.csv and only-successful files). Frontend: Navigation displays 'Procesamiento por Lotes' and 'Webhook Automations' cleanly in ES and (intentionally EN-identical for the brand term) 'Webhook Automations'. Batch tab renders (recipe selector, format selector, file picker); Automations tab shows auth-gate CTA when anonymous. All layouts clean.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "BatchProcessingView", "issues": ["Native <select> for recipe/format still used (inherited from iter2) — non-blocking."]}
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/backend_test.py",
+    "/app/backend/tests/test_hardening_security.py",
+    "/app/test_reports/pytest/pytest_results.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "Hardening tests use TestClient(app) directly with init_db(); this shares state with dev DB — acceptable for MVP but consider a fixture-scoped test DB.",
+    "test_hardening_security.py seeds User A/B with fixed emails; not cleaned up post-run (idempotent via existence check). Safe but grows dev DB.",
+    "Verify recipe_service.verify_hmac_signature uses hmac.compare_digest for constant-time comparison (recommended)."
+  ],
+  "updated_files": ["/app/test_reports/iteration_3.json", "/app/test_reports/pytest/pytest_results.xml"],
+  "success_rate": {"backend": "100% (22/22)", "frontend": "100% of tested navigation/label flows"},
+  "test_credentials": "demo@anclora.com / CleanSheet2026! (verified)",
+  "seed_data_creation": "test_hardening_security.py seeds user_a@test.com / user_b@test.com + Recipe A Test + wh_test_token_hardening_123 (idempotent).",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "All hardening requirements verified: HMAC signature verify, replay protection (>300s), tampered payload 401, cross-user recipe 403, batch partial with manifest.json/manifest.csv only-successful in ZIP. Nav labels correct in ES/EN. Backend suite ready as regression."
+}
