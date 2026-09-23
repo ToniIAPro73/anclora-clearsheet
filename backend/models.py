@@ -3,7 +3,7 @@ import uuid
 import secrets
 from datetime import datetime, timezone
 from sqlalchemy import (
-    create_engine, Column, String, Integer, DateTime as SQLDateTime, Text, ForeignKey, JSON, UniqueConstraint
+    create_engine, Column, String, Integer, DateTime as SQLDateTime, Text, ForeignKey, JSON, UniqueConstraint, text
 )
 from sqlalchemy.orm import declarative_base, sessionmaker, relationship
 from sqlalchemy.pool import StaticPool
@@ -243,7 +243,13 @@ def init_db():
         # SQLite is intentionally limited to isolated local/CI runs.
         Base.metadata.create_all(bind=engine)
         return
-    raise RuntimeError("PostgreSQL schema is migration-owned; run Alembic upgrade head before starting CleanSheet")
+    # PostgreSQL production schema is migration-owned. Startup may verify
+    # connectivity, but it must never create or alter production tables.
+    check_database()
+
+def check_database():
+    with engine.connect() as connection:
+        connection.execute(text("SELECT 1"))
 
 def get_db():
     db = SessionLocal()
