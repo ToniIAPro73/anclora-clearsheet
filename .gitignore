@@ -44,6 +44,9 @@ dump.rdb
 
 # System files
 .DS_Store
+artifacts/
+backend/.venv-independence-check/
+backend/*.db
 *.pem
 
 # Python
@@ -82,7 +85,6 @@ memory/test_credentials.md
 android-sdk/
 
 # overlay black-box crash/user-report dumps — session data, never history
-**/.emergent/recordings/
 
 # Secrets / local environment
 .env

@@ -39,7 +39,7 @@ Backend names observed in code:
 
 Frontend names observed in code:
 
-`REACT_APP_BACKEND_URL`, `ENABLE_HEALTH_CHECK`, `DISABLE_EMERGENT_OVERLAY`.
+`REACT_APP_BACKEND_URL`, `ENABLE_HEALTH_CHECK`.
 
 The exact names and safe placeholders are maintained in `backend/.env.example`
 and `frontend/.env.example`. Secrets belong only in deployment configuration or

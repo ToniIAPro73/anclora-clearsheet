@@ -12,14 +12,35 @@ La característica fundamental que diferencia a CleanSheet es:
 - **Frontend**: React + Tailwind CSS + Lucide Icons. Componentes modulares preparados para despliegue en Vercel.
 - **Backend**: FastAPI (Python 3.11), SQLAlchemy relacional con soporte para Neon PostgreSQL y SQLite local para desarrollo rápido, motor de procesamiento determinista con Polars / Pandas y openpyxl.
 - **Almacenamiento**: Abstracción `StorageService` con adaptador de archivos temporales privados y compatible con Vercel Private Blob.
-- **Autenticación**: Propia e independiente de Emergent con Argon2id, tokens JWT de acceso y renovación vía cookies HttpOnly seguras.
+- **Autenticación**: Propia, con Argon2id, tokens JWT de acceso y renovación vía cookies HttpOnly seguras.
 - **Modos de Usuario**:
   - **Uso anónimo sin registro**: Carga, heurística, preview, exportación XLSX/CSV, descarga de receta YAML y script Python sin requerir cuenta.
   - **Usuario autenticado**: Persistencia en base de datos de recetas, historial de auditoría de ejecuciones y re-aplicación automatizada con fingerprinting.
 
 ---
 
-## 3. Heurísticas Implementadas
+## 3. Ejecución portable
+
+El backend y el scheduler son procesos independientes y no requieren un daemon de cron,
+una imagen privada ni servicios internos de una herramienta de desarrollo:
+
+```bash
+# Terminal 1 — API
+cd backend
+uvicorn server:app --host 0.0.0.0 --port 8000
+
+# Terminal 2 — Scheduled Automations
+cd backend
+python scheduler_worker.py
+```
+
+El worker admite `SCHEDULER_POLL_INTERVAL_SECONDS`, `SCHEDULER_BUSY_INTERVAL_SECONDS` y
+`SCHEDULER_LEASE_SECONDS`. Las automatizaciones persistidas en SQLAlchemy son la fuente
+canónica; los webhooks y el worker comparten leases e idempotencia.
+
+---
+
+## 4. Heurísticas Implementadas
 1. **Detección de Filas de Título / Banners**: Identifica saltos de densidad para saltar encabezados de reportes.
 2. **Cabeceras Multinivel**: Detecta categorías agrupadas y subcabeceras, aplanándolas deterministamente (`Ventas_Neto`).
 3. **Múltiples Tablas por Hoja**: Identifica bloques tabulares independientes separados por filas vacías.
@@ -30,7 +51,7 @@ La característica fundamental que diferencia a CleanSheet es:
 
 ---
 
-## 4. Rendimiento (Benchmark 100.000 Filas)
+## 5. Rendimiento (Benchmark 100.000 Filas)
 - Análisis heurístico preliminar con muestreo: **~0.048s**
 - Generación de vista previa interactiva: **<0.005s**
 - Transformación determinista completa de 100.000 filas: **~0.80s**
@@ -39,7 +60,7 @@ La característica fundamental que diferencia a CleanSheet es:
 
 ---
 
-## 5. Criterios de Aceptación Cumplidos
+## 6. Criterios de Aceptación Cumplidos
 - [x] Subida drag-and-drop de archivos Excel y CSV reales.
 - [x] Preset Híbrido Conservador por defecto (nombres de columna conservados).
 - [x] Recálculo en tiempo real con debounce en el panel de reglas.

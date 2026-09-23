@@ -44,14 +44,17 @@ api_router.include_router(schedules_router)
 # Mount top-level api_router onto FastAPI app
 app.include_router(api_router)
 
-# CORS setup: allow explicit origins + wildcard fallback safely
-frontend_origin = os.environ.get("FRONTEND_URL", "https://sheet-normalizer.preview.emergentagent.com")
-cors_origins = [frontend_origin, "http://localhost:3000", "http://127.0.0.1:3000"]
+# CORS setup: credentials require an explicit, configured origin list.
+configured_origins = os.environ.get("CORS_ORIGINS")
+if configured_origins is None:
+    configured_origins = os.environ.get("FRONTEND_URL", "http://localhost:3000")
+cors_origins = [origin.strip() for origin in configured_origins.split(",") if origin.strip()]
+if "*" in cors_origins:
+    raise RuntimeError("CORS_ORIGINS cannot contain '*' when credentials are enabled")
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=cors_origins,
-    allow_origin_regex=r"https://.*\.preview\.emergentagent\.com",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

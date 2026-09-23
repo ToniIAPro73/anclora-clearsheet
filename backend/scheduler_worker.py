@@ -2,19 +2,22 @@ import os
 import time
 import socket
 import logging
+import signal
 from datetime import datetime, timezone, timedelta
 from typing import List, Optional
-from sqlalchemy import or_, and_
+from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
-from models import SessionLocal, ScheduledAutomation, ScheduledRun
+from models import SessionLocal, ScheduledAutomation, init_db
 from scheduler_dispatcher import SchedulerJobDispatcher
 from scheduler_utils import calculate_next_runs
 
 logger = logging.getLogger("cleansheet.scheduler_worker")
 
-# Lease duration for distributed locking (3 minutes)
-LEASE_DURATION_SECONDS = 180
+# Portable worker settings. All values can be overridden by the process environment.
+POLL_INTERVAL_SECONDS = max(float(os.environ.get("SCHEDULER_POLL_INTERVAL_SECONDS", "5")), 0.1)
+BUSY_INTERVAL_SECONDS = max(float(os.environ.get("SCHEDULER_BUSY_INTERVAL_SECONDS", "1")), 0.1)
+LEASE_DURATION_SECONDS = max(int(os.environ.get("SCHEDULER_LEASE_SECONDS", "180")), 1)
 
 def get_worker_id() -> str:
     return f"{socket.gethostname()}_{os.getpid()}"
@@ -29,6 +32,16 @@ class SchedulerWorker:
 
     def __init__(self, worker_id: Optional[str] = None):
         self.worker_id = worker_id or get_worker_id()
+        self._running = False
+
+    @property
+    def running(self) -> bool:
+        return self._running
+
+    def start(self) -> None:
+        self._running = True
+
+    def stop(self) -> None:
         self._running = False
 
     def acquire_due_jobs(self, db: Session, limit: int = 10) -> List[ScheduledAutomation]:
@@ -126,13 +139,23 @@ class SchedulerWorker:
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
+    init_db()
     worker = SchedulerWorker()
     logger.info(f"Starting standalone scheduler worker (ID: {worker.worker_id})")
-    
-    # Standalone daemon loop
+
+    def request_shutdown(signum, _frame):
+        logger.info("Received signal %s; stopping scheduler worker.", signum)
+        worker.stop()
+
+    signal.signal(signal.SIGINT, request_shutdown)
+    signal.signal(signal.SIGTERM, request_shutdown)
+    worker.start()
+
     try:
-        while True:
+        while worker.running:
             processed = worker.run_once()
-            time.sleep(5 if processed == 0 else 1)
+            time.sleep(BUSY_INTERVAL_SECONDS if processed else POLL_INTERVAL_SECONDS)
     except KeyboardInterrupt:
-        logger.info("Worker stopped by signal.")
+        worker.stop()
+    finally:
+        logger.info("Scheduler worker stopped.")

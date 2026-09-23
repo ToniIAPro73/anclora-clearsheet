@@ -10,8 +10,14 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
 from models import get_db, User
 
-# JWT Configuration
-JWT_SECRET = os.environ.get("JWT_SECRET", "cleansheet-secret-key-production-change-secure-938210")
+# JWT Configuration. Production must provide a secret; local development and tests use
+# a process-local random fallback so no reusable credential is embedded in source.
+APP_ENV = os.environ.get("APP_ENV", "development").lower()
+JWT_SECRET = os.environ.get("JWT_SECRET")
+if not JWT_SECRET:
+    if APP_ENV == "production":
+        raise RuntimeError("JWT_SECRET is required when APP_ENV=production")
+    JWT_SECRET = secrets.token_urlsafe(32)
 JWT_ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60
 REFRESH_TOKEN_EXPIRE_DAYS = 7
