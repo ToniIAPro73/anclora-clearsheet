@@ -47,13 +47,13 @@ isolated deterministic tests and is not the human development runtime.
 
 DATABASE_PROVIDER=Neon PostgreSQL
 ORM=SQLAlchemy 2.x
-MIGRATION_SYSTEM=NONE_DECLARED
+MIGRATION_SYSTEM=Alembic
 PRODUCTION_MIGRATIONS_ALLOWED=false
 MIGRATION_CONFIRMATION_REQUIRED=true
 
-`backend/models.py` currently calls `Base.metadata.create_all`. No production
-migration is authorized or introduced by this bootstrap. Any future schema change
-needs an explicit migration design and review before production execution.
+`backend/models.py` permits `create_all` only for SQLite isolated tests. PostgreSQL
+startup rejects implicit schema creation; production schema is managed by Alembic
+revision `0001_initial_schema`.
 
 ## Environment contract
 

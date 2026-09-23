@@ -3,18 +3,23 @@ import uuid
 import secrets
 from datetime import datetime, timezone
 from sqlalchemy import (
-    create_engine, Column, String, Integer, DateTime, Text, ForeignKey, JSON, UniqueConstraint
+    create_engine, Column, String, Integer, DateTime as SQLDateTime, Text, ForeignKey, JSON, UniqueConstraint
 )
 from sqlalchemy.orm import declarative_base, sessionmaker, relationship
 from sqlalchemy.pool import StaticPool
+
+# Every persisted instant is timezone-aware. `timezone_name` remains an explicit
+# IANA identifier on scheduled automations and is not inferred from the server.
+DateTime = SQLDateTime(timezone=True)
 
 # Database URL configuration
 # Default supports PostgreSQL / Neon (e.g. postgresql://user:password@neon.tech/dbname)
 # Falls back to local SQLite with thread safety for dev if PostgreSQL is not active
 DATABASE_URL = os.environ.get("DATABASE_URL")
+DATABASE_TARGET = os.environ.get("DATABASE_TARGET", "local").lower()
 if not DATABASE_URL:
     # Use SQLite for reliable zero-setup development, fully compatible schema with PostgreSQL
-    DATABASE_URL = "sqlite:////app/backend/cleansheet.db"
+    DATABASE_URL = "sqlite:////tmp/cleansheet.db"
 
 is_sqlite = DATABASE_URL.startswith("sqlite")
 
@@ -234,7 +239,11 @@ class ScheduledRun(Base):
     execution = relationship("Execution")
 
 def init_db():
-    Base.metadata.create_all(bind=engine)
+    if is_sqlite:
+        # SQLite is intentionally limited to isolated local/CI runs.
+        Base.metadata.create_all(bind=engine)
+        return
+    raise RuntimeError("PostgreSQL schema is migration-owned; run Alembic upgrade head before starting CleanSheet")
 
 def get_db():
     db = SessionLocal()
