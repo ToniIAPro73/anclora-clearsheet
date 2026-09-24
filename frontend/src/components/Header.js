@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Globe, Sun, Moon, Laptop, LogIn, LogOut, User as UserIcon, Menu, X } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { BrandMark } from "./BrandMark";
@@ -14,8 +15,14 @@ export default function Header({
   openAuthModal
 }) {
   const { user, logout } = useAuth();
+  const navigate = useNavigate();
   const [themeMenuOpen, setThemeMenuOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  const handleLogout = async () => {
+    await logout();
+    navigate("/login");
+  };
 
   const toggleLanguage = () => {
     setLang(lang === "es" ? "en" : "es");
@@ -221,9 +228,9 @@ export default function Header({
               </span>
               <button
                 data-testid="auth-logout-button"
-                onClick={logout}
+                onClick={handleLogout}
                 title={t.nav.logout}
-                className="p-1.5 rounded-md text-slate-400 hover:text-red-400 hover:bg-red-500/10 transition-colors"
+                className="p-1.5 rounded-md text-slate-400 hover:text-red-400 hover:bg-red-500/10 transition-colors cursor-pointer"
               >
                 <LogOut className="w-4 h-4" />
               </button>
@@ -231,8 +238,8 @@ export default function Header({
           ) : (
             <button
               data-testid="auth-login-button"
-              onClick={openAuthModal}
-              className="px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-[#3B82F6]/15 hover:bg-[#3B82F6]/25 text-[#38BDF8] border border-[#3B82F6]/40 transition-all flex items-center space-x-1 shadow-sm"
+              onClick={() => navigate("/login")}
+              className="px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-[#3B82F6]/15 hover:bg-[#3B82F6]/25 text-[#38BDF8] border border-[#3B82F6]/40 transition-all flex items-center space-x-1 shadow-sm cursor-pointer"
             >
               <LogIn className="w-3.5 h-3.5" />
               <span className="hidden sm:inline">{t.nav.sign_in}</span>

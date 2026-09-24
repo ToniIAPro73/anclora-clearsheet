@@ -57,7 +57,10 @@ class ExecuteCloudPipelineRequest(BaseModel):
 # ----------------- Connections Management Endpoints -----------------
 
 @router.post("/test")
-def test_unsaved_connection(req: TestConnectionRequest):
+def test_unsaved_connection(
+    req: TestConnectionRequest,
+    user: User = Depends(get_current_user_required)
+):
     """
     Tests connection against remote storage BEFORE saving it to DB.
     Validates credentials and SSRF endpoint safety.

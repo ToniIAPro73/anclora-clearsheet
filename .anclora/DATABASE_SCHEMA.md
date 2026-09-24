@@ -1,12 +1,14 @@
 # CleanSheet production database
 
-Provider: Neon PostgreSQL. Production schema is owned by Alembic revision
-`0001_initial_schema`; PostgreSQL startup refuses implicit `create_all`. SQLite
-`create_all` remains available only for isolated CI tests.
+Provider: Neon PostgreSQL. Production schema is governed by Alembic revisions
+`0001_initial_schema` and `0002_closed_access_whitelist`; PostgreSQL startup refuses
+implicit `create_all`. SQLite `create_all` remains available only for isolated CI tests.
 
 | Table | Purpose | Sensitivity |
 |---|---|---|
-| `users` | Application identities | email, password hash |
+| `users` | Application identities (`status`: active, disabled) | email, password hash |
+| `auth_whitelist` | Invitation tokens (SHA-256 hashes), status, expiry | email, token hash (no raw secrets) |
+| `auth_audit_events` | Security and access audit trail | event, email, metadata |
 | `source_files` | Source metadata and storage references | filenames, paths |
 | `recipes` | Transformation definitions | user-authored definitions |
 | `executions` | Run status and metrics | filenames, references |

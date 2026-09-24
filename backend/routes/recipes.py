@@ -235,9 +235,9 @@ def validate_compatibility(
     if not recipe:
         raise HTTPException(status_code=404, detail="Receta no encontrada.")
 
-    source_file = db.query(SourceFile).filter(SourceFile.id == req.file_id).first()
+    source_file = db.query(SourceFile).filter(SourceFile.id == req.file_id, SourceFile.user_id == user.id).first()
     if not source_file:
-        raise HTTPException(status_code=404, detail="Archivo no encontrado.")
+        raise HTTPException(status_code=404, detail="Archivo no encontrado o no autorizado.")
 
     recipe_dict = yaml.safe_load(recipe.definition_yaml)
 

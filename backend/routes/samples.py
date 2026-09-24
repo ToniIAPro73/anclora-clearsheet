@@ -3,13 +3,18 @@ import pandas as pd
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
-from models import get_db, SourceFile
+from models import get_db, SourceFile, User
+from auth import get_current_user_required
 from storage import storage
 
 router = APIRouter(tags=["samples"])
 
 @router.get("/samples/{sample_type}")
-def get_sample_data(sample_type: str, db: Session = Depends(get_db)):
+def get_sample_data(
+    sample_type: str,
+    user: User = Depends(get_current_user_required),
+    db: Session = Depends(get_db)
+):
     """
     Generates realistic messy ERP/CRM/Bank datasets for immediate one-click testing in UI.
     """
@@ -63,7 +68,7 @@ def get_sample_data(sample_type: str, db: Session = Depends(get_db)):
 
     storage_key = storage.save_file(buf, "xlsx")
     source_file = SourceFile(
-        user_id=None,
+        user_id=user.id,
         original_name=filename,
         file_type="xlsx",
         file_size=buf.getbuffer().nbytes,

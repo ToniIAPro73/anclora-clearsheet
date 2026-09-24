@@ -177,6 +177,7 @@ def test_recipe_ownership_authorization(setup_users_and_recipes):
 
 # ----------------- 4. Batch Partial Results & Manifest -----------------
 def test_batch_partial_results_and_manifest():
+    client.post("/api/auth/login", json={"email": "user_a@test.com", "password": "Pass123!"})
     # Submit 3 files: 1 valid CSV, 1 corrupted XLSX (wrong magic bytes), 1 invalid extension (.exe)
     valid_csv = ("valid.csv", b"Titulo\nFecha,Importe\n01/05/2026,\"1.200,50\"\n", "text/csv")
     corrupt_xlsx = ("corrupt.xlsx", b"NOT_A_REAL_ZIP_HEADER_JUST_RANDOM_TEXT", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")

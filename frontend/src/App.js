@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useCallback } from "react";
-import axios from "axios";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { debounce } from "lodash";
 import { AuthProvider } from "./context/AuthContext";
+import { UIProvider, useUI } from "./context/UIContext";
 import { translations } from "./i18n";
+import { api } from "./lib/api";
 
 import Header from "./components/Header";
 import DropZone from "./components/DropZone";
@@ -17,20 +19,16 @@ import AutomationsView from "./components/AutomationsView";
 import StreamParsingView from "./components/StreamParsingView";
 import ConnectorsView from "./components/ConnectorsView";
 import SchedulesView from "./components/SchedulesView";
-import AuthModal from "./components/AuthModal";
-
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || "";
+import ProtectedRoute from "./components/ProtectedRoute";
+import Landing from "./components/Landing";
+import Login from "./components/Login";
+import ActivateAccess from "./components/ActivateAccess";
 
 const listUnique = (arr) => Array.from(new Set(arr));
 
-function CleanSheetApp() {
-  // Theme state: dark | light | system (persisted in localStorage, default dark)
-  const [theme, setTheme] = useState(() => localStorage.getItem("cleansheet_theme") || "dark");
-  // Language state: es | en (persisted in localStorage, default es)
-  const [lang, setLang] = useState(() => localStorage.getItem("cleansheet_lang") || "es");
-
-  const [activeTab, setActiveTab] = useState("clean"); // "clean" | "recipes" | "history"
-  const [authModalOpen, setAuthModalOpen] = useState(false);
+export function CleanSheetApp() {
+  const { theme, setTheme, lang, setLang } = useUI();
+  const [activeTab, setActiveTab] = useState("clean"); // "clean" | "stream" | "batch" | "automations" | "connectors" | "schedules" | "recipes" | "history"
 
   // Active File Data & Analysis
   const [currentFile, setCurrentFile] = useState(null);
@@ -43,25 +41,6 @@ function CleanSheetApp() {
   const [isRecalculating, setIsRecalculating] = useState(false);
 
   const t = translations[lang] || translations.es;
-
-  // Persist Theme and handle System preference
-  useEffect(() => {
-    localStorage.setItem("cleansheet_theme", theme);
-    const root = document.documentElement;
-    root.classList.remove("dark", "light");
-
-    if (theme === "system") {
-      const systemDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-      root.classList.add(systemDark ? "dark" : "light");
-    } else {
-      root.classList.add(theme);
-    }
-  }, [theme]);
-
-  // Persist Language
-  useEffect(() => {
-    localStorage.setItem("cleansheet_lang", lang);
-  }, [lang]);
 
   const handleAnalysisComplete = ({ fileInfo, analysisData }) => {
     setCurrentFile(fileInfo);
@@ -78,7 +57,7 @@ function CleanSheetApp() {
     const debouncedFn = debounce(async (fId, rules) => {
       setIsRecalculating(true);
       try {
-        const res = await axios.post(`${BACKEND_URL}/api/files/preview`, {
+        const res = await api.post("/files/preview", {
           file_id: fId,
           rules: rules
         });
@@ -117,7 +96,6 @@ function CleanSheetApp() {
         t={t}
         activeTab={activeTab}
         setActiveTab={setActiveTab}
-        openAuthModal={() => setAuthModalOpen(true)}
       />
 
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
@@ -162,7 +140,7 @@ function CleanSheetApp() {
                       setCurrentFile(null);
                       setAnalysisData(null);
                     }}
-                    className="px-3 py-1.5 rounded-lg text-xs font-semibold border border-slate-300 dark:border-slate-700 hover:border-red-400 text-slate-600 dark:text-slate-400 hover:text-red-400 transition-colors self-start sm:self-auto"
+                    className="px-3 py-1.5 rounded-lg text-xs font-semibold border border-slate-300 dark:border-slate-700 hover:border-red-400 text-slate-600 dark:text-slate-400 hover:text-red-400 transition-colors self-start sm:self-auto cursor-pointer"
                   >
                     Cargar otro archivo
                   </button>
@@ -184,11 +162,10 @@ function CleanSheetApp() {
                     // Persistent versioned update if user has active recipe
                     if (currentFile?.recipe_id) {
                       try {
-                        await axios.post(
-                          `${BACKEND_URL}/api/recipes/${currentFile.recipe_id}/aliases`,
-                          { canonical_column: canonicalCol, alias: candCol },
-                          { withCredentials: true }
-                        );
+                        await api.post(`/recipes/${currentFile.recipe_id}/aliases`, {
+                          canonical_column: canonicalCol,
+                          alias: candCol
+                        });
                         alert(`Alias '${candCol}' guardado en la receta de forma versionada.`);
                       } catch (e) {
                         alert("Error al persistir alias en la receta.");
@@ -230,7 +207,7 @@ function CleanSheetApp() {
                   pythonScript={pythonScript}
                   structureFingerprint={analysisData?.structure_fingerprint}
                   t={t}
-                  openAuthModal={() => setAuthModalOpen(true)}
+                  openAuthModal={() => {}}
                   onRecipeSaved={() => setActiveTab("recipes")}
                 />
               </div>
@@ -243,19 +220,19 @@ function CleanSheetApp() {
         )}
 
         {activeTab === "batch" && (
-          <BatchProcessingView t={t} openAuthModal={() => setAuthModalOpen(true)} />
+          <BatchProcessingView t={t} openAuthModal={() => {}} />
         )}
 
         {activeTab === "automations" && (
-          <AutomationsView t={t} openAuthModal={() => setAuthModalOpen(true)} />
+          <AutomationsView t={t} openAuthModal={() => {}} />
         )}
 
         {activeTab === "connectors" && (
-          <ConnectorsView t={t} openAuthModal={() => setAuthModalOpen(true)} />
+          <ConnectorsView t={t} openAuthModal={() => {}} />
         )}
 
         {activeTab === "schedules" && (
-          <SchedulesView t={t} openAuthModal={() => setAuthModalOpen(true)} />
+          <SchedulesView t={t} openAuthModal={() => {}} />
         )}
 
         {activeTab === "recipes" && (
@@ -270,12 +247,6 @@ function CleanSheetApp() {
         {activeTab === "history" && <HistoryView t={t} />}
       </main>
 
-      <AuthModal
-        isOpen={authModalOpen}
-        onClose={() => setAuthModalOpen(false)}
-        t={t}
-      />
-
       <footer className="w-full border-t border-slate-200 dark:border-slate-800/80 py-6 text-center text-xs text-slate-400 dark:text-slate-500">
         <p>Anclora CleanSheet © 2026. Normalización determinista y reproducible.</p>
       </footer>
@@ -285,8 +256,25 @@ function CleanSheetApp() {
 
 export default function App() {
   return (
-    <AuthProvider>
-      <CleanSheetApp />
-    </AuthProvider>
+    <BrowserRouter>
+      <AuthProvider>
+        <UIProvider>
+          <Routes>
+            <Route path="/" element={<Landing />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/activate" element={<ActivateAccess />} />
+            <Route
+              path="/app"
+              element={
+                <ProtectedRoute>
+                  <CleanSheetApp />
+                </ProtectedRoute>
+              }
+            />
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </UIProvider>
+      </AuthProvider>
+    </BrowserRouter>
   );
 }

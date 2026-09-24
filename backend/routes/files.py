@@ -13,7 +13,7 @@ import pandas as pd
 import yaml
 
 from models import get_db, SourceFile, Recipe, User
-from auth import get_current_user_optional
+from auth import get_current_user_required
 from storage import storage
 from heuristics import generate_structure_fingerprint
 from engine import NormalizationPlanner, TransformationEngine
@@ -33,10 +33,10 @@ class ApplyRulesRequest(BaseModel):
 async def upload_file(
     file: UploadFile = File(...),
     db: Session = Depends(get_db),
-    user: Optional[User] = Depends(get_current_user_optional)
+    user: User = Depends(get_current_user_required)
 ):
     """
-    Step 1: Upload CSV or Excel file. Works seamlessly for anonymous users or authenticated users.
+    Step 1: Upload CSV or Excel file. Requires active authenticated user.
     Saves file in private storage and extracts sheet names.
     """
     filename = file.filename or "upload.csv"
@@ -64,7 +64,7 @@ async def upload_file(
 
     # Register in DB (source_file)
     source_file = SourceFile(
-        user_id=user.id if user else None,
+        user_id=user.id,
         original_name=filename,
         file_type=ext.replace(".", ""),
         file_size=file_size,
@@ -88,15 +88,16 @@ async def upload_file(
 def analyze_file(
     file_id: str,
     sheet: Optional[str] = None,
+    user: User = Depends(get_current_user_required),
     db: Session = Depends(get_db)
 ):
     """
     Step 2: Parse sheet and run deterministic Heuristic Analysis.
-    Returns detected structure, title banners, date/decimal formats, and proposed rules.
+    Enforces strict user ownership of file_id.
     """
-    source_file = db.query(SourceFile).filter(SourceFile.id == file_id).first()
+    source_file = db.query(SourceFile).filter(SourceFile.id == file_id, SourceFile.user_id == user.id).first()
     if not source_file:
-        raise HTTPException(status_code=404, detail="Archivo no encontrado.")
+        raise HTTPException(status_code=404, detail="Archivo no encontrado o no autorizado.")
 
     file_path = storage.get_file_path(source_file.storage_path)
     if not os.path.exists(file_path):
@@ -113,10 +114,11 @@ def analyze_file(
     if not raw_rows:
         raise HTTPException(status_code=400, detail="El archivo se encuentra vacío.")
 
-    # Cache for preview responsiveness
+    # Cache for preview responsiveness with strict user isolation
     FILE_CACHE[file_id] = {
         "raw_rows": raw_rows,
         "sheet": selected_sheet,
+        "user_id": user.id,
         "timestamp": time.time()
     }
 
@@ -145,16 +147,18 @@ def analyze_file(
 @router.post("/preview")
 def preview_rules(
     req: ApplyRulesRequest,
+    user: User = Depends(get_current_user_required),
     db: Session = Depends(get_db)
 ):
     """
     Step 3: Interactive real-time recalculation of preview when user tweaks rules in UI.
+    Enforces user isolation in cache and database.
     """
     cached = FILE_CACHE.get(req.file_id)
-    if not cached:
-        source_file = db.query(SourceFile).filter(SourceFile.id == req.file_id).first()
+    if not cached or cached.get("user_id") != user.id:
+        source_file = db.query(SourceFile).filter(SourceFile.id == req.file_id, SourceFile.user_id == user.id).first()
         if not source_file:
-            raise HTTPException(status_code=404, detail="Sesión de archivo no encontrada.")
+            raise HTTPException(status_code=404, detail="Sesión de archivo no encontrada o no autorizada.")
         file_path = storage.get_file_path(source_file.storage_path)
         ext = source_file.file_type.lower()
         if ext in ["xlsx", "xls"]:
@@ -162,7 +166,7 @@ def preview_rules(
         else:
             df_raw = pd.read_csv(file_path, header=None, sep=None, engine="python")
         raw_rows = df_raw.fillna("").values.tolist()
-        cached = {"raw_rows": raw_rows, "sheet": "Sheet1", "timestamp": time.time()}
+        cached = {"raw_rows": raw_rows, "sheet": "Sheet1", "user_id": user.id, "timestamp": time.time()}
         FILE_CACHE[req.file_id] = cached
 
     raw_rows = cached["raw_rows"]
@@ -191,14 +195,15 @@ def export_file(
     req: ApplyRulesRequest,
     format: str = "xlsx", # xlsx | csv
     db: Session = Depends(get_db),
-    user: Optional[User] = Depends(get_current_user_optional)
+    user: User = Depends(get_current_user_required)
 ):
     """
     Step 4: Executes complete transformation on the ENTIRE dataset using unified RecipeExecutionService.
+    Enforces user ownership on source file.
     """
-    source_file = db.query(SourceFile).filter(SourceFile.id == req.file_id).first()
+    source_file = db.query(SourceFile).filter(SourceFile.id == req.file_id, SourceFile.user_id == user.id).first()
     if not source_file:
-        raise HTTPException(status_code=404, detail="Archivo no encontrado.")
+        raise HTTPException(status_code=404, detail="Archivo no encontrado o no autorizado.")
 
     file_path = storage.get_file_path(source_file.storage_path)
     with open(file_path, "rb") as f:
@@ -212,7 +217,7 @@ def export_file(
         rules=req.rules,
         output_format=format,
         original_filename=source_file.original_name,
-        user_id=user.id if user else None,
+        user_id=user.id,
         context_tag="manual_export"
     )
 
@@ -229,13 +234,13 @@ async def stream_process_csv(
     manual_delimiter: Optional[str] = Form(None),
     output_format: str = Form("csv"),
     db: Session = Depends(get_db),
-    user: Optional[User] = Depends(get_current_user_optional)
+    user: User = Depends(get_current_user_required)
 ):
     """
     Stream Chunked Parsing for large CSV files (up to 250MB):
     - Streams directly to disk avoiding RAM exhaustion.
     - Processes chunks sequentially via RecipeExecutionService.execute_stream_csv.
-    - Yields normalized CSV directly.
+    - Requires authenticated user session.
     """
     filename = file.filename or "large_data.csv"
     if not filename.lower().endswith(".csv"):
@@ -261,17 +266,14 @@ async def stream_process_csv(
                 raise HTTPException(status_code=400, detail="El archivo excede el límite máximo de streaming permitido.")
             f_out.write(chunk)
 
-    # Determine recipe
+    # Determine recipe with strict ownership check
     recipe_rules = None
     active_recipe = None
     if recipe_id:
-        active_recipe = db.query(Recipe).filter(Recipe.id == recipe_id).first()
+        active_recipe = db.query(Recipe).filter(Recipe.id == recipe_id, Recipe.user_id == user.id).first()
         if not active_recipe:
             temp_file_path.unlink(missing_ok=True)
-            raise HTTPException(status_code=404, detail="Receta no encontrada.")
-        if active_recipe.user_id and (not user or active_recipe.user_id != user.id):
-            temp_file_path.unlink(missing_ok=True)
-            raise HTTPException(status_code=403, detail="No tienes autorización para usar esta receta privada.")
+            raise HTTPException(status_code=404, detail="Receta no encontrada o no autorizada.")
         recipe_dict = yaml.safe_load(active_recipe.definition_yaml)
         recipe_rules = recipe_dict.get("rules", {})
 
@@ -291,7 +293,7 @@ async def stream_process_csv(
             rules=recipe_rules,
             output_format=output_format,
             original_filename=filename,
-            user_id=user.id if user else None,
+            user_id=user.id,
             recipe_id=active_recipe.id if active_recipe else None,
             context_tag="stream_upload",
             manual_delimiter=manual_delimiter
@@ -308,11 +310,13 @@ async def stream_process_csv(
 @router.post("/detect-dialect")
 async def detect_csv_dialect(
     file: UploadFile = File(...),
-    manual_delimiter: Optional[str] = Form(None)
+    manual_delimiter: Optional[str] = Form(None),
+    user: User = Depends(get_current_user_required)
 ):
     """
     Analyzes CSV bytes to detect delimiter (comma, semicolon, tab, pipe),
     quoting and encoding with confidence score and ambiguity warnings.
+    Requires authenticated user session.
     """
     content = await file.read(65536) # Read first 64KB for dialect detection
     return CsvDialectDetector.analyze(content, manual_override_delimiter=manual_delimiter)

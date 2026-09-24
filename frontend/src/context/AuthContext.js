@@ -1,21 +1,15 @@
-import React, { createContext, useContext, useState, useEffect } from "react";
-import axios from "axios";
+import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
+import { api } from "../lib/api";
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || "";
 const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // Check session on mount
-  useEffect(() => {
-    checkSession();
-  }, []);
-
-  const checkSession = async () => {
+  const checkSession = useCallback(async () => {
     try {
-      const res = await axios.get(`${BACKEND_URL}/api/auth/me`, { withCredentials: true });
+      const res = await api.get("/auth/me");
       if (res.data && res.data.authenticated) {
         setUser(res.data.user);
       } else {
@@ -26,26 +20,26 @@ export const AuthProvider = ({ children }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    checkSession();
+  }, [checkSession]);
 
   const login = async (email, password) => {
-    const res = await axios.post(
-      `${BACKEND_URL}/api/auth/login`,
-      { email, password },
-      { withCredentials: true }
-    );
+    const res = await api.post("/auth/login", { email, password });
     if (res.data) {
       setUser(res.data);
       return res.data;
     }
   };
 
-  const register = async (email, password, displayName) => {
-    const res = await axios.post(
-      `${BACKEND_URL}/api/auth/register`,
-      { email, password, display_name: displayName },
-      { withCredentials: true }
-    );
+  const activate = async (token, password, displayName) => {
+    const res = await api.post("/auth/activate", {
+      token,
+      password,
+      display_name: displayName
+    });
     if (res.data) {
       setUser(res.data);
       return res.data;
@@ -54,15 +48,15 @@ export const AuthProvider = ({ children }) => {
 
   const logout = async () => {
     try {
-      await axios.post(`${BACKEND_URL}/api/auth/logout`, {}, { withCredentials: true });
+      await api.post("/auth/logout", {});
     } catch (e) {
-      // ignore
+      // ignore network errors on logout
     }
     setUser(null);
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, logout, checkSession }}>
+    <AuthContext.Provider value={{ user, setUser, loading, login, activate, logout, checkSession }}>
       {children}
     </AuthContext.Provider>
   );

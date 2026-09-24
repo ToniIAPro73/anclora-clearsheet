@@ -3,7 +3,7 @@ import uuid
 import secrets
 from datetime import datetime, timezone
 from sqlalchemy import (
-    create_engine, Column, String, Integer, DateTime as SQLDateTime, Text, ForeignKey, JSON, UniqueConstraint, text
+    create_engine, Column, String, Integer, DateTime as SQLDateTime, Text, ForeignKey, JSON, UniqueConstraint, text, event
 )
 from sqlalchemy.orm import declarative_base, sessionmaker, relationship
 from sqlalchemy.pool import StaticPool
@@ -42,11 +42,66 @@ class User(Base):
     email = Column(String(255), unique=True, nullable=False, index=True)
     password_hash = Column(String(255), nullable=False)
     display_name = Column(String(255), nullable=True)
+    status = Column(String(20), nullable=False, default="active", server_default="active")  # active | disabled
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
     recipes = relationship("Recipe", back_populates="user", cascade="all, delete-orphan")
     executions = relationship("Execution", back_populates="user")
+    whitelist_entry = relationship("AuthWhitelist", back_populates="user", uselist=False)
+
+class AuthWhitelist(Base):
+    __tablename__ = "auth_whitelist"
+
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    email = Column(String(255), unique=True, nullable=False, index=True)
+    status = Column(String(20), nullable=False, default="pending", index=True)  # pending | active | revoked
+    token_hash = Column(String(64), unique=True, nullable=True)  # SHA-256 hex
+    expires_at = Column(DateTime, nullable=True, index=True)
+    activated_at = Column(DateTime, nullable=True)
+    revoked_at = Column(DateTime, nullable=True)
+    user_id = Column(String(36), ForeignKey("users.id", ondelete="SET NULL"), nullable=True, unique=True, index=True)
+    created_by = Column(String(255), nullable=False)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc), nullable=False)
+
+    user = relationship("User", back_populates="whitelist_entry")
+
+@event.listens_for(User, "after_insert")
+def _auto_whitelist_user(mapper, connection, target):
+    try:
+        clean_email = (target.email or "").strip().lower()
+        if not clean_email:
+            return
+        stmt = text("SELECT 1 FROM auth_whitelist WHERE lower(email) = :email OR user_id = :uid")
+        result = connection.execute(stmt, {"email": clean_email, "uid": target.id}).fetchone()
+        if not result:
+            wl_id = str(uuid.uuid4())
+            now = datetime.now(timezone.utc)
+            insert_stmt = text(
+                "INSERT INTO auth_whitelist (id, email, status, token_hash, expires_at, activated_at, revoked_at, user_id, created_by, created_at, updated_at) "
+                "VALUES (:id, :email, :status, NULL, NULL, :now, NULL, :user_id, 'system_auto_sync', :now, :now)"
+            )
+            connection.execute(insert_stmt, {
+                "id": wl_id,
+                "email": clean_email,
+                "status": target.status or "active",
+                "now": now,
+                "user_id": target.id
+            })
+    except Exception:
+        pass
+
+class AuthAuditEvent(Base):
+    __tablename__ = "auth_audit_events"
+
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    event = Column(String(50), nullable=False, index=True)
+    email = Column(String(255), nullable=True, index=True)
+    user_id = Column(String(36), nullable=True, index=True)
+    metadata_json = Column(JSON, nullable=True)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False, index=True)
+
 
 class SourceFile(Base):
     __tablename__ = "source_files"
@@ -241,7 +296,34 @@ class ScheduledRun(Base):
 def init_db():
     if is_sqlite:
         # SQLite is intentionally limited to isolated local/CI runs.
-        Base.metadata.create_all(bind=engine)
+        try:
+            Base.metadata.create_all(bind=engine)
+            with SessionLocal() as db:
+                unlinked = db.query(User).all()
+                now = datetime.now(timezone.utc)
+                for u in unlinked:
+                    if not u.status:
+                        u.status = "active"
+                    clean_email = (u.email or "").strip().lower()
+                    wl = db.query(AuthWhitelist).filter(
+                        (AuthWhitelist.user_id == u.id) | (AuthWhitelist.email == clean_email)
+                    ).first()
+                    if not wl:
+                        wl = AuthWhitelist(
+                            id=str(uuid.uuid4()),
+                            email=clean_email,
+                            status="active",
+                            user_id=u.id,
+                            created_by="init_db_sync",
+                            created_at=now,
+                            updated_at=now,
+                            activated_at=now
+                        )
+                        db.add(wl)
+                db.commit()
+        except Exception:
+            # Parallel test workers or pre-existing schema
+            pass
         return
     # PostgreSQL production schema is migration-owned. Startup may verify
     # connectivity, but it must never create or alter production tables.

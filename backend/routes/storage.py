@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, Request
 from pydantic import BaseModel
 
 from models import User
-from auth import get_current_user_optional
+from auth import get_current_user_required
 from storage import storage
 
 router = APIRouter(prefix="/storage", tags=["storage"])
@@ -16,7 +16,7 @@ class DirectUploadRequest(BaseModel):
 @router.post("/direct-upload-url")
 def request_direct_upload_url(
     req: DirectUploadRequest,
-    user: Optional[User] = Depends(get_current_user_optional)
+    user: User = Depends(get_current_user_required)
 ):
     """
     Phase 2: Generates direct browser-to-storage signed upload credentials.

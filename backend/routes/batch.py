@@ -29,13 +29,14 @@ async def batch_process(
     recipe_id: Optional[str] = Form(None),
     output_format: str = Form("xlsx"),
     db: Session = Depends(get_db),
-    user: Optional[User] = Depends(get_current_user_optional)
+    user: User = Depends(get_current_user_required)
 ):
     """
     Hardened Batch Processing with partial success tolerance:
     - Failed or corrupted files do NOT fail the batch.
     - ZIP contains only successfully normalized files + a manifest.json and manifest.csv.
-    - Enforces ownership authorization if recipe_id is provided by an authenticated user.
+    - Requires active user authentication.
+    - Enforces ownership authorization if recipe_id is provided.
     - Enforces magic bytes/size validation per file.
     - Uses unified RecipeExecutionService for identical transformation logic.
     """
@@ -51,8 +52,8 @@ async def batch_process(
         active_recipe = db.query(Recipe).filter(Recipe.id == recipe_id).first()
         if not active_recipe:
             raise HTTPException(status_code=404, detail="La receta especificada no existe.")
-        if active_recipe.user_id and (not user or active_recipe.user_id != user.id):
-            raise HTTPException(status_code=403, detail="No tienes autorización para usar esta receta privada.")
+        if active_recipe.user_id != user.id:
+            raise HTTPException(status_code=403, detail="No tienes autorización para usar esta receta.")
         recipe_dict = yaml.safe_load(active_recipe.definition_yaml)
         recipe_rules = recipe_dict.get("rules", {})
 
@@ -237,7 +238,19 @@ async def batch_process(
     }
 
 @router.get("/download/{storage_key}")
-def download_batch_zip(storage_key: str):
+def download_batch_zip(
+    storage_key: str,
+    user: User = Depends(get_current_user_required),
+    db: Session = Depends(get_db)
+):
+    # Verify execution ownership
+    execution = db.query(Execution).filter(
+        Execution.user_id == user.id,
+        Execution.result_storage_path == storage_key
+    ).first()
+    if not execution:
+        raise HTTPException(status_code=404, detail="Archivo comprimido no encontrado o no autorizado.")
+
     file_path = storage.get_file_path(storage_key)
     if not os.path.exists(file_path):
         raise HTTPException(status_code=404, detail="Archivo comprimido no encontrado o expirado.")

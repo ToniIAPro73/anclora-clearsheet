@@ -12,10 +12,12 @@ La característica fundamental que diferencia a CleanSheet es:
 - **Frontend**: React + Tailwind CSS + Lucide Icons. Componentes modulares preparados para despliegue en Vercel.
 - **Backend**: FastAPI (Python 3.11), SQLAlchemy relacional con soporte para Neon PostgreSQL y SQLite local para desarrollo rápido, motor de procesamiento determinista con Polars / Pandas y openpyxl.
 - **Almacenamiento**: Abstracción `StorageService` con adaptador de archivos temporales privados y compatible con Vercel Private Blob.
-- **Autenticación**: Propia, con Argon2id, tokens JWT de acceso y renovación vía cookies HttpOnly seguras.
-- **Modos de Usuario**:
-  - **Uso anónimo sin registro**: Carga, heurística, preview, exportación XLSX/CSV, descarga de receta YAML y script Python sin requerir cuenta.
-  - **Usuario autenticado**: Persistencia en base de datos de recetas, historial de auditoría de ejecuciones y re-aplicación automatizada con fingerprinting.
+- **Autenticación**: Propia, con Argon2id, tokens JWT de acceso y renovación vía cookies HttpOnly seguras (`access_token`, `refresh_token`).
+- **Control de Acceso Cerrado**:
+  - **Landing Pública (`/`)**: Presentación del producto, propuesta de valor y accesos a login y activación.
+  - **Acceso Exclusivo por Invitación / Whitelist (`/activate`)**: Tokens SHA-256 de uso único emitidos por administradores. Registro público libre cerrado.
+  - **Workspace Protegido (`/app`)**: Cierre total de APIs para usuarios anónimos; aislamiento multi-tenant e IDOR mitigado con control estricto de propiedad por `user_id`.
+  - **Revocación Inmediata**: La revocación de una invitación en la whitelist invalida las sesiones activas en base de datos de manera inmediata.
 
 ---
 

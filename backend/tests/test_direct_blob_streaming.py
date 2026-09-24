@@ -3,11 +3,26 @@ import io
 from fastapi.testclient import TestClient
 from server import app
 from storage import storage
+from models import SessionLocal, User
+from auth import hash_password
 
 client = TestClient(app)
 
-def test_request_direct_upload_credentials():
-    res = client.post(
+@pytest.fixture
+def auth_client():
+    db = SessionLocal()
+    u = db.query(User).filter(User.email == "storage_test@anclora.com").first()
+    if not u:
+        u = User(email="storage_test@anclora.com", password_hash=hash_password("CleanSheet2026!"), display_name="Storage User")
+        db.add(u)
+        db.commit()
+    db.close()
+    c = TestClient(app)
+    c.post("/api/auth/login", json={"email": "storage_test@anclora.com", "password": "CleanSheet2026!"})
+    return c
+
+def test_request_direct_upload_credentials(auth_client):
+    res = auth_client.post(
         "/api/storage/direct-upload-url",
         json={"filename": "direct_large.csv", "content_type": "text/csv"}
     )
@@ -17,9 +32,9 @@ def test_request_direct_upload_credentials():
     assert "storage_key" in data
     assert data["storage_key"].endswith(".csv")
 
-def test_direct_upload_stream_and_process():
+def test_direct_upload_stream_and_process(auth_client):
     # 1. Request signed direct upload URL
-    cred_res = client.post(
+    cred_res = auth_client.post(
         "/api/storage/direct-upload-url",
         json={"filename": "browser_direct.csv", "content_type": "text/csv"}
     )
