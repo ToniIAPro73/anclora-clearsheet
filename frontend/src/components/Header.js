@@ -1,6 +1,7 @@
 import React, { useState } from "react";
-import { Globe, Sun, Moon, Laptop, Sparkles, LogIn, LogOut, User as UserIcon, Menu, X } from "lucide-react";
+import { Globe, Sun, Moon, Laptop, LogIn, LogOut, User as UserIcon, Menu, X } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
+import { BrandMark } from "./BrandMark";
 
 export default function Header({
   lang,
@@ -26,13 +27,13 @@ export default function Header({
       className="sticky top-0 z-50 w-full backdrop-blur-md transition-colors duration-200 border-b border-[#3B82F6]/30 dark:bg-[#0E1525]/90 bg-white/95"
     >
       <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-        {/* Brand & Placeholder Logo */}
+        {/* Brand */}
         <div className="flex items-center space-x-2 sm:space-x-3 cursor-pointer shrink-0" onClick={() => setActiveTab("clean")}>
           <div
             data-testid="brand-logo-placeholder"
-            className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg bg-gradient-to-tr from-[#3B82F6] to-[#38BDF8] flex items-center justify-center shadow-sm shadow-[#38BDF8]/20"
+            className="w-8 h-8 sm:w-9 sm:h-9 rounded-full flex items-center justify-center overflow-hidden shadow-sm shadow-[#38BDF8]/20"
           >
-            <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+            <BrandMark className="w-full h-full" />
           </div>
           <div>
             <div className="text-base sm:text-lg font-bold tracking-tight dark:text-white text-slate-900 flex items-center gap-1">
