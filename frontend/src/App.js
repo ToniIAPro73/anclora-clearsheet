@@ -89,10 +89,6 @@ export function CleanSheetApp() {
       className="min-h-screen flex flex-col font-sans transition-colors duration-200 dark:bg-[#080D18] bg-slate-50 text-slate-900 dark:text-slate-100 selection:bg-[#38BDF8]/30 selection:text-white"
     >
       <Header
-        lang={lang}
-        setLang={setLang}
-        theme={theme}
-        setTheme={setTheme}
         t={t}
         activeTab={activeTab}
         setActiveTab={setActiveTab}

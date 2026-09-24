@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Link, useNavigate, Navigate } from "react-router-dom";
-import { ArrowLeft, Eye, EyeOff, ShieldCheck, KeyRound } from "lucide-react";
+import { ArrowLeft, Eye, EyeOff, ShieldCheck } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { useUI } from "../context/UIContext";
 import { BrandMark } from "./BrandMark";
@@ -138,9 +138,8 @@ export default function Login() {
             </span>
             <Link
               to="/activate"
-              className="font-bold text-[#38BDF8] hover:underline flex items-center gap-1"
+              className="font-bold text-[#38BDF8] hover:underline"
             >
-              <KeyRound size={12} />
               <span>{en ? "Activate access" : "Activar acceso"}</span>
             </Link>
           </div>

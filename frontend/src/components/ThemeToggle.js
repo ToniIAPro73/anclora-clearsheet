@@ -13,11 +13,12 @@ export function ThemeToggle({ className = "" }) {
         data-testid="theme-toggle-button"
         onClick={() => setOpen(!open)}
         title="Cambiar tema / Switch theme"
-        className="w-8 h-8 rounded-full flex items-center justify-center transition-all duration-200 border border-[#3B82F6]/40 hover:border-[#38BDF8] bg-[#0E1525] text-[#F5F7FA] hover:shadow-[#38BDF8]/20 focus:outline-none focus:ring-2 focus:ring-[#38BDF8]"
+        aria-label="Theme toggle"
+        className="anclora-toggle flex h-9 w-9 items-center justify-center rounded-full transition-all duration-200 border border-[#3B82F6]/40 hover:border-[#38BDF8] bg-[#0E1525] text-[#F5F7FA] hover:shadow-[#38BDF8]/20 focus:outline-none focus:ring-2 focus:ring-[#38BDF8]"
       >
-        {theme === "dark" && <Moon className="w-4 h-4 text-[#38BDF8]" />}
-        {theme === "light" && <Sun className="w-4 h-4 text-amber-400" />}
-        {theme === "system" && <Laptop className="w-4 h-4 text-slate-300" />}
+        {theme === "dark" && <Moon className="h-[18px] w-[18px] text-[#38BDF8]" strokeWidth={1.6} />}
+        {theme === "light" && <Sun className="h-[18px] w-[18px] text-amber-400" strokeWidth={1.6} />}
+        {theme === "system" && <Laptop className="h-[18px] w-[18px] text-slate-300" strokeWidth={1.6} />}
       </button>
 
       {open && (

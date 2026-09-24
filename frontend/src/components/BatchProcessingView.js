@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Files, Download, Loader2, CheckCircle2, FileSpreadsheet, ArrowRight, Archive, Activity, Clock, AlertTriangle } from "lucide-react";
+import { Files, Download, Loader2, CheckCircle2, FileSpreadsheet, Archive, Activity, Clock, AlertTriangle } from "lucide-react";
 import axios from "axios";
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || "";
@@ -164,7 +164,7 @@ export default function BatchProcessingView({ t, openAuthModal }) {
           disabled={selectedFiles.length === 0 || processing}
           className="px-5 py-2 rounded-xl text-xs font-semibold bg-[#3B82F6] hover:bg-[#2563EB] disabled:opacity-40 disabled:cursor-not-allowed text-white flex items-center space-x-2 transition-all shadow-md shadow-[#3B82F6]/20 self-start sm:self-auto"
         >
-          {processing ? <Loader2 className="w-4 h-4 animate-spin" /> : <ArrowRight className="w-4 h-4" />}
+          {processing && <Loader2 className="w-4 h-4 animate-spin" />}
           <span>{processing ? "Procesando Lote..." : "Procesar Todo el Lote"}</span>
         </button>
       </div>

@@ -1,14 +1,12 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Globe, Sun, Moon, Laptop, LogIn, LogOut, User as UserIcon, Menu, X } from "lucide-react";
+import { LogIn, LogOut, User as UserIcon, Menu, X } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { BrandMark } from "./BrandMark";
+import LangToggle from "./LangToggle";
+import ThemeToggle from "./ThemeToggle";
 
 export default function Header({
-  lang,
-  setLang,
-  theme,
-  setTheme,
   t,
   activeTab,
   setActiveTab,
@@ -16,16 +14,11 @@ export default function Header({
 }) {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
-  const [themeMenuOpen, setThemeMenuOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const handleLogout = async () => {
     await logout();
     navigate("/login");
-  };
-
-  const toggleLanguage = () => {
-    setLang(lang === "es" ? "en" : "es");
   };
 
   return (
@@ -146,79 +139,10 @@ export default function Header({
           )}
         </nav>
 
-        {/* Right Controls: Language Selector Pill & Theme Circle */}
+        {/* Right Controls: Canonical Shared Lang & Theme Toggles */}
         <div className="flex items-center space-x-2 shrink-0">
-          {/* Language Selector Pill */}
-          <button
-            data-testid="lang-toggle-pill"
-            onClick={toggleLanguage}
-            title={lang === "es" ? "Switch to English" : "Cambiar a Español"}
-            className="flex items-center space-x-1.5 px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wider transition-all duration-200 border border-[#3B82F6]/40 hover:border-[#38BDF8] shadow-sm bg-[#0E1525] text-[#F5F7FA] hover:shadow-[#38BDF8]/20 focus:outline-none focus:ring-2 focus:ring-[#38BDF8]"
-          >
-            <Globe className="w-3.5 h-3.5 text-[#38BDF8]" />
-            <span>{lang.toUpperCase()}</span>
-          </button>
-
-          {/* Theme Selector Circle with Dropdown Menu */}
-          <div className="relative">
-            <button
-              data-testid="theme-toggle-button"
-              onClick={() => setThemeMenuOpen(!themeMenuOpen)}
-              title="Cambiar tema / Switch theme"
-              className="w-8 h-8 rounded-full flex items-center justify-center transition-all duration-200 border border-[#3B82F6]/40 hover:border-[#38BDF8] bg-[#0E1525] text-[#F5F7FA] hover:shadow-[#38BDF8]/20 focus:outline-none focus:ring-2 focus:ring-[#38BDF8]"
-            >
-              {theme === "dark" && <Moon className="w-4 h-4 text-[#38BDF8]" />}
-              {theme === "light" && <Sun className="w-4 h-4 text-amber-400" />}
-              {theme === "system" && <Laptop className="w-4 h-4 text-slate-300" />}
-            </button>
-
-            {themeMenuOpen && (
-              <div
-                data-testid="theme-dropdown-menu"
-                className="absolute right-0 mt-2 w-36 rounded-lg shadow-xl py-1 z-50 border border-slate-700 dark:bg-[#0B1220] bg-white text-xs font-medium"
-              >
-                <button
-                  data-testid="theme-option-dark"
-                  onClick={() => {
-                    setTheme("dark");
-                    setThemeMenuOpen(false);
-                  }}
-                  className={`w-full px-3 py-2 flex items-center space-x-2 text-left hover:bg-[#3B82F6]/10 ${
-                    theme === "dark" ? "text-[#38BDF8] font-bold" : "text-slate-700 dark:text-slate-300"
-                  }`}
-                >
-                  <Moon className="w-3.5 h-3.5 text-[#38BDF8]" />
-                  <span>Oscuro</span>
-                </button>
-                <button
-                  data-testid="theme-option-light"
-                  onClick={() => {
-                    setTheme("light");
-                    setThemeMenuOpen(false);
-                  }}
-                  className={`w-full px-3 py-2 flex items-center space-x-2 text-left hover:bg-[#3B82F6]/10 ${
-                    theme === "light" ? "text-[#38BDF8] font-bold" : "text-slate-700 dark:text-slate-300"
-                  }`}
-                >
-                  <Sun className="w-3.5 h-3.5 text-amber-500" />
-                  <span>Claro</span>
-                </button>
-                <button
-                  data-testid="theme-option-system"
-                  onClick={() => {
-                    setTheme("system");
-                    setThemeMenuOpen(false);
-                  }}
-                  className={`w-full px-3 py-2 flex items-center space-x-2 text-left hover:bg-[#3B82F6]/10 ${
-                    theme === "system" ? "text-[#38BDF8] font-bold" : "text-slate-700 dark:text-slate-300"
-                  }`}
-                >
-                  <Laptop className="w-3.5 h-3.5 text-slate-400" />
-                  <span>Sistema</span>
-                </button>
-              </div>
-            )}
-          </div>
+          <LangToggle />
+          <ThemeToggle />
 
           {/* User Auth Action Button */}
           {user ? (

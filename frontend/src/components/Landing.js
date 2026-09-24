@@ -6,9 +6,7 @@ import {
   Check,
   FileSpreadsheet,
   Cpu,
-  Layers,
-  ArrowRight,
-  KeyRound
+  Layers
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { useUI } from "../context/UIContext";
@@ -144,8 +142,7 @@ export default function Landing() {
           <p className="landing-lead">{copy.lead}</p>
           <div className="landing-actions flex-wrap">
             <Link to="/login" className="landing-primary">
-              <span>{copy.signIn}</span>
-              <ArrowRight size={15} />
+              {copy.signIn}
             </Link>
             <a href="#how" className="landing-text-link">
               {copy.howItWorks}
@@ -154,9 +151,8 @@ export default function Landing() {
           <div className="mt-4">
             <Link
               to="/activate"
-              className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#38BDF8] hover:underline"
+              className="inline-flex items-center text-xs font-semibold text-[#38BDF8] hover:underline"
             >
-              <KeyRound size={13} />
               <span>{copy.activate}</span>
             </Link>
           </div>
@@ -260,8 +256,7 @@ export default function Landing() {
         <h2>{copy.closing}</h2>
         <div className="flex flex-col items-center gap-3">
           <Link to="/login" className="landing-primary">
-            <span>{copy.signIn}</span>
-            <ArrowRight size={15} />
+            {copy.signIn}
           </Link>
           <Link to="/activate" className="text-xs text-[#38BDF8] hover:underline font-semibold mt-2">
             {copy.activate}

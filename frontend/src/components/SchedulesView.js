@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { 
   Calendar, Clock, Plus, Play, Pause, RefreshCw, Trash2, CheckCircle2, 
-  AlertTriangle, History, ArrowRight, ShieldAlert, FileSpreadsheet,
+  AlertTriangle, History, ShieldAlert, FileSpreadsheet,
   Check, Loader2, Info, Eye, ExternalLink, Settings2
 } from "lucide-react";
 import axios from "axios";

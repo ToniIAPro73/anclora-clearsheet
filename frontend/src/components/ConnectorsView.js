@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { 
   Cloud, Plus, RefreshCw, Trash2, CheckCircle2, AlertTriangle, 
-  Folder, Play, ArrowRight, ShieldCheck, Database, FileSpreadsheet,
+  Folder, Play, ShieldCheck, Database, FileSpreadsheet,
   ExternalLink, Key, Lock, Check, Loader2, List
 } from "lucide-react";
 import axios from "axios";

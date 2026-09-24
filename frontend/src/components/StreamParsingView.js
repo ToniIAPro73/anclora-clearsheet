@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Zap, Download, Loader2, ArrowRight, CheckCircle2, FileText, Database } from "lucide-react";
+import { Zap, Download, Loader2, CheckCircle2, FileText, Database } from "lucide-react";
 import axios from "axios";
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || "";
@@ -218,7 +218,7 @@ export default function StreamParsingView({ t }) {
           onClick={handleStartStream}
           className="px-5 py-2 rounded-xl text-xs font-semibold bg-[#3B82F6] hover:bg-[#2563EB] disabled:opacity-40 disabled:cursor-not-allowed text-white flex items-center space-x-2 transition-all shadow-md shadow-[#3B82F6]/20"
         >
-          {processing ? <Loader2 className="w-4 h-4 animate-spin" /> : <ArrowRight className="w-4 h-4" />}
+          {processing && <Loader2 className="w-4 h-4 animate-spin" />}
           <span>{processing ? "Procesando Chunks..." : "Iniciar Stream Normalización"}</span>
         </button>
       </div>
