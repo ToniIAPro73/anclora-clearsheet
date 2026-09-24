@@ -129,6 +129,4 @@ frontend/.env
 # Local credentials
 memory/test_credentials.md
 
-# OS
-.DS_Store
 .env*
