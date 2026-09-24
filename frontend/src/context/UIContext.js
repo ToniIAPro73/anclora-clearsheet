@@ -25,8 +25,16 @@ export const UIProvider = ({ children }) => {
 
   const toggleLang = () => setLang((prev) => (prev === "es" ? "en" : "es"));
 
+  const cycleTheme = () => {
+    setTheme((prev) => {
+      if (prev === "dark") return "light";
+      if (prev === "light") return "system";
+      return "dark";
+    });
+  };
+
   return (
-    <UIContext.Provider value={{ theme, setTheme, lang, setLang, toggleLang }}>
+    <UIContext.Provider value={{ theme, setTheme, cycleTheme, lang, setLang, toggleLang }}>
       {children}
     </UIContext.Provider>
   );
