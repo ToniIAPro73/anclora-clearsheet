@@ -92,20 +92,53 @@ def test_alias_with_type_mismatch():
 
 # ----------------- 2. Webhook Execution Inspector & User Isolation -----------------
 def test_webhook_execution_inspector_and_isolation():
+    import uuid
+    from datetime import datetime, timezone
+    from models import AuthWhitelist
     db = SessionLocal()
     u1 = db.query(User).filter(User.email == "user1_insp@test.com").first()
     if not u1:
-        u1 = User(email="user1_insp@test.com", password_hash=hash_password("Pass1!"), display_name="User 1")
+        u1 = User(email="user1_insp@test.com", password_hash=hash_password("Pass1!"), display_name="User 1", status="active")
         db.add(u1)
-        db.commit()
-        db.refresh(u1)
+        db.flush()
+    wl1 = db.query(AuthWhitelist).filter(AuthWhitelist.email == "user1_insp@test.com").first()
+    if not wl1:
+        wl1 = AuthWhitelist(
+            id=str(uuid.uuid4()),
+            email="user1_insp@test.com",
+            status="active",
+            user_id=u1.id,
+            created_by="test_setup",
+            activated_at=datetime.now(timezone.utc)
+        )
+        db.add(wl1)
+    else:
+        wl1.user_id = u1.id
+        wl1.status = "active"
+    db.commit()
+    db.refresh(u1)
 
     u2 = db.query(User).filter(User.email == "user2_insp@test.com").first()
     if not u2:
-        u2 = User(email="user2_insp@test.com", password_hash=hash_password("Pass1!"), display_name="User 2")
+        u2 = User(email="user2_insp@test.com", password_hash=hash_password("Pass1!"), display_name="User 2", status="active")
         db.add(u2)
-        db.commit()
-        db.refresh(u2)
+        db.flush()
+    wl2 = db.query(AuthWhitelist).filter(AuthWhitelist.email == "user2_insp@test.com").first()
+    if not wl2:
+        wl2 = AuthWhitelist(
+            id=str(uuid.uuid4()),
+            email="user2_insp@test.com",
+            status="active",
+            user_id=u2.id,
+            created_by="test_setup",
+            activated_at=datetime.now(timezone.utc)
+        )
+        db.add(wl2)
+    else:
+        wl2.user_id = u2.id
+        wl2.status = "active"
+    db.commit()
+    db.refresh(u2)
 
     rec1 = db.query(Recipe).filter(Recipe.user_id == u1.id, Recipe.name == "Recipe Insp").first()
     if not rec1:

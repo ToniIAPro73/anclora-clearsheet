@@ -37,6 +37,8 @@ def admin_user(db_session):
         db_session.add(admin)
         db_session.flush()
 
+    wl = db_session.query(AuthWhitelist).filter(AuthWhitelist.email == "admin@anclora.local").first()
+    if not wl:
         wl = AuthWhitelist(
             id=str(uuid.uuid4()),
             email="admin@anclora.local",
@@ -46,7 +48,11 @@ def admin_user(db_session):
             activated_at=datetime.now(timezone.utc)
         )
         db_session.add(wl)
-        db_session.commit()
+    else:
+        wl.user_id = admin.id
+        wl.status = "active"
+    db_session.commit()
+    db_session.refresh(admin)
     return admin
 
 def test_public_registration_disabled(client):
@@ -181,6 +187,17 @@ def test_login_success_and_generic_failure(client, db_session):
         status="active"
     )
     db_session.add(user)
+    db_session.flush()
+
+    wl = AuthWhitelist(
+        id=str(uuid.uuid4()),
+        email=login_email,
+        status="active",
+        user_id=user.id,
+        created_by="test_setup",
+        activated_at=datetime.now(timezone.utc)
+    )
+    db_session.add(wl)
     db_session.commit()
 
     # Valid login
@@ -206,7 +223,7 @@ def test_login_success_and_generic_failure(client, db_session):
     assert r_none.status_code == 401
     assert "credenciales incorrectas" in r_none.text.lower()
 
-def test_disabled_user_and_revoked_whitelist(client, db_session):
+def test_disabled_user_and_revoked_whitelist(client, db_session, admin_user):
     rev_email = f"rev_{uuid.uuid4().hex[:6]}@anclora.com"
     pwd = "StrongPassword2026!#"
     user = User(
@@ -217,6 +234,17 @@ def test_disabled_user_and_revoked_whitelist(client, db_session):
         status="active"
     )
     db_session.add(user)
+    db_session.flush()
+
+    wl = AuthWhitelist(
+        id=str(uuid.uuid4()),
+        email=rev_email,
+        status="active",
+        user_id=user.id,
+        created_by="test_setup",
+        activated_at=datetime.now(timezone.utc)
+    )
+    db_session.add(wl)
     db_session.commit()
 
     entry = db_session.query(AuthWhitelist).filter(AuthWhitelist.email == rev_email).first()

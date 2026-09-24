@@ -1,8 +1,10 @@
 import pytest
 from fastapi.testclient import TestClient
 from unittest.mock import patch, MagicMock
+import uuid
+from datetime import datetime, timezone
 from server import app
-from models import SessionLocal, User, Recipe, ExternalStorageConnection, Execution
+from models import SessionLocal, User, Recipe, ExternalStorageConnection, Execution, AuthWhitelist
 from auth import hash_password
 
 client = TestClient(app)
@@ -15,11 +17,26 @@ def auth_headers_user1():
         user1 = User(
             email="user1_cloud@example.com",
             password_hash=hash_password("PassUser1_2026!"),
-            display_name="User 1 Cloud"
+            display_name="User 1 Cloud",
+            status="active"
         )
         db.add(user1)
-        db.commit()
-        db.refresh(user1)
+        db.flush()
+    wl1 = db.query(AuthWhitelist).filter(AuthWhitelist.email == "user1_cloud@example.com").first()
+    if not wl1:
+        wl1 = AuthWhitelist(
+            id=str(uuid.uuid4()),
+            email="user1_cloud@example.com",
+            status="active",
+            user_id=user1.id,
+            created_by="test_setup",
+            activated_at=datetime.now(timezone.utc)
+        )
+        db.add(wl1)
+    else:
+        wl1.user_id = user1.id
+        wl1.status = "active"
+    db.commit()
     db.close()
 
     res = client.post("/api/auth/login", json={"email": "user1_cloud@example.com", "password": "PassUser1_2026!"})
@@ -35,11 +52,26 @@ def auth_headers_user2():
         user2 = User(
             email="user2_cloud@example.com",
             password_hash=hash_password("PassUser2_2026!"),
-            display_name="User 2 Cloud"
+            display_name="User 2 Cloud",
+            status="active"
         )
         db.add(user2)
-        db.commit()
-        db.refresh(user2)
+        db.flush()
+    wl2 = db.query(AuthWhitelist).filter(AuthWhitelist.email == "user2_cloud@example.com").first()
+    if not wl2:
+        wl2 = AuthWhitelist(
+            id=str(uuid.uuid4()),
+            email="user2_cloud@example.com",
+            status="active",
+            user_id=user2.id,
+            created_by="test_setup",
+            activated_at=datetime.now(timezone.utc)
+        )
+        db.add(wl2)
+    else:
+        wl2.user_id = user2.id
+        wl2.status = "active"
+    db.commit()
     db.close()
 
     res = client.post("/api/auth/login", json={"email": "user2_cloud@example.com", "password": "PassUser2_2026!"})

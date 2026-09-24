@@ -21,17 +21,34 @@ client = TestClient(app)
 
 @pytest.fixture
 def auth_headers_scheduler():
+    import uuid
+    from models import AuthWhitelist
     db = SessionLocal()
     user = db.query(User).filter(User.email == "sched_test_user@anclora.com").first()
     if not user:
         user = User(
             email="sched_test_user@anclora.com",
             password_hash=hash_password("CleanSheet2026!"),
-            display_name="Scheduler Tester"
+            display_name="Scheduler Tester",
+            status="active"
         )
         db.add(user)
-        db.commit()
-        db.refresh(user)
+        db.flush()
+    wl = db.query(AuthWhitelist).filter(AuthWhitelist.email == "sched_test_user@anclora.com").first()
+    if not wl:
+        wl = AuthWhitelist(
+            id=str(uuid.uuid4()),
+            email="sched_test_user@anclora.com",
+            status="active",
+            user_id=user.id,
+            created_by="test_setup",
+            activated_at=datetime.now(timezone.utc)
+        )
+        db.add(wl)
+    else:
+        wl.user_id = user.id
+        wl.status = "active"
+    db.commit()
     db.close()
 
     res = client.post("/api/auth/login", json={"email": "sched_test_user@anclora.com", "password": "CleanSheet2026!"})
@@ -40,17 +57,34 @@ def auth_headers_scheduler():
 
 @pytest.fixture
 def other_user_headers():
+    import uuid
+    from models import AuthWhitelist
     db = SessionLocal()
     user = db.query(User).filter(User.email == "other_sched_user@anclora.com").first()
     if not user:
         user = User(
             email="other_sched_user@anclora.com",
             password_hash=hash_password("CleanSheet2026!"),
-            display_name="Other User"
+            display_name="Other User",
+            status="active"
         )
         db.add(user)
-        db.commit()
-        db.refresh(user)
+        db.flush()
+    wl = db.query(AuthWhitelist).filter(AuthWhitelist.email == "other_sched_user@anclora.com").first()
+    if not wl:
+        wl = AuthWhitelist(
+            id=str(uuid.uuid4()),
+            email="other_sched_user@anclora.com",
+            status="active",
+            user_id=user.id,
+            created_by="test_setup",
+            activated_at=datetime.now(timezone.utc)
+        )
+        db.add(wl)
+    else:
+        wl.user_id = user.id
+        wl.status = "active"
+    db.commit()
     db.close()
 
     res = client.post("/api/auth/login", json={"email": "other_sched_user@anclora.com", "password": "CleanSheet2026!"})

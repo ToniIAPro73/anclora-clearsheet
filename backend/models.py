@@ -3,7 +3,7 @@ import uuid
 import secrets
 from datetime import datetime, timezone
 from sqlalchemy import (
-    create_engine, Column, String, Integer, DateTime as SQLDateTime, Text, ForeignKey, JSON, UniqueConstraint, text, event
+    create_engine, Column, String, Integer, DateTime as SQLDateTime, Text, ForeignKey, JSON, UniqueConstraint, text
 )
 from sqlalchemy.orm import declarative_base, sessionmaker, relationship
 from sqlalchemy.pool import StaticPool
@@ -66,32 +66,6 @@ class AuthWhitelist(Base):
     updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc), nullable=False)
 
     user = relationship("User", back_populates="whitelist_entry")
-
-@event.listens_for(User, "after_insert")
-def _auto_whitelist_user(mapper, connection, target):
-    try:
-        clean_email = (target.email or "").strip().lower()
-        if not clean_email:
-            return
-        stmt = text("SELECT 1 FROM auth_whitelist WHERE lower(email) = :email OR user_id = :uid")
-        result = connection.execute(stmt, {"email": clean_email, "uid": target.id}).fetchone()
-        if not result:
-            wl_id = str(uuid.uuid4())
-            now = datetime.now(timezone.utc)
-            insert_stmt = text(
-                "INSERT INTO auth_whitelist (id, email, status, token_hash, expires_at, activated_at, revoked_at, user_id, created_by, created_at, updated_at) "
-                "VALUES (:id, :email, :status, NULL, NULL, :now, NULL, :user_id, 'system_auto_sync', :now, :now)"
-            )
-            connection.execute(insert_stmt, {
-                "id": wl_id,
-                "email": clean_email,
-                "status": target.status or "active",
-                "now": now,
-                "user_id": target.id
-            })
-    except Exception:
-        pass
-
 class AuthAuditEvent(Base):
     __tablename__ = "auth_audit_events"
 

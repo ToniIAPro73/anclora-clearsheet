@@ -9,22 +9,55 @@ client = TestClient(app)
 
 @pytest.fixture(scope="module")
 def setup_alias_and_batch_data():
+    import uuid
+    from datetime import datetime, timezone
+    from models import AuthWhitelist
     db = SessionLocal()
     # User 1
     u1 = db.query(User).filter(User.email == "alias_u1@test.com").first()
     if not u1:
-        u1 = User(email="alias_u1@test.com", password_hash=hash_password("Pass1!"), display_name="Alias U1")
+        u1 = User(email="alias_u1@test.com", password_hash=hash_password("Pass1!"), display_name="Alias U1", status="active")
         db.add(u1)
-        db.commit()
-        db.refresh(u1)
+        db.flush()
+    wl1 = db.query(AuthWhitelist).filter(AuthWhitelist.email == "alias_u1@test.com").first()
+    if not wl1:
+        wl1 = AuthWhitelist(
+            id=str(uuid.uuid4()),
+            email="alias_u1@test.com",
+            status="active",
+            user_id=u1.id,
+            created_by="test_setup",
+            activated_at=datetime.now(timezone.utc)
+        )
+        db.add(wl1)
+    else:
+        wl1.user_id = u1.id
+        wl1.status = "active"
+    db.commit()
+    db.refresh(u1)
 
     # User 2 (adversary for isolation tests)
     u2 = db.query(User).filter(User.email == "alias_u2@test.com").first()
     if not u2:
-        u2 = User(email="alias_u2@test.com", password_hash=hash_password("Pass1!"), display_name="Alias U2")
+        u2 = User(email="alias_u2@test.com", password_hash=hash_password("Pass1!"), display_name="Alias U2", status="active")
         db.add(u2)
-        db.commit()
-        db.refresh(u2)
+        db.flush()
+    wl2 = db.query(AuthWhitelist).filter(AuthWhitelist.email == "alias_u2@test.com").first()
+    if not wl2:
+        wl2 = AuthWhitelist(
+            id=str(uuid.uuid4()),
+            email="alias_u2@test.com",
+            status="active",
+            user_id=u2.id,
+            created_by="test_setup",
+            activated_at=datetime.now(timezone.utc)
+        )
+        db.add(wl2)
+    else:
+        wl2.user_id = u2.id
+        wl2.status = "active"
+    db.commit()
+    db.refresh(u2)
 
     # Recipe for U1
     rec1 = Recipe(

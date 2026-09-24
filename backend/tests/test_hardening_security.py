@@ -20,22 +20,55 @@ client = TestClient(app)
 
 @pytest.fixture(scope="module")
 def setup_users_and_recipes():
+    import uuid
+    from datetime import datetime, timezone
+    from models import AuthWhitelist
     db = SessionLocal()
     # User A (owner)
     user_a = db.query(User).filter(User.email == "user_a@test.com").first()
     if not user_a:
-        user_a = User(email="user_a@test.com", password_hash=hash_password("Pass123!"), display_name="User A")
+        user_a = User(email="user_a@test.com", password_hash=hash_password("Pass123!"), display_name="User A", status="active")
         db.add(user_a)
-        db.commit()
-        db.refresh(user_a)
+        db.flush()
+    wl_a = db.query(AuthWhitelist).filter(AuthWhitelist.email == "user_a@test.com").first()
+    if not wl_a:
+        wl_a = AuthWhitelist(
+            id=str(uuid.uuid4()),
+            email="user_a@test.com",
+            status="active",
+            user_id=user_a.id,
+            created_by="test_setup",
+            activated_at=datetime.now(timezone.utc)
+        )
+        db.add(wl_a)
+    else:
+        wl_a.user_id = user_a.id
+        wl_a.status = "active"
+    db.commit()
+    db.refresh(user_a)
 
     # User B (adversary)
     user_b = db.query(User).filter(User.email == "user_b@test.com").first()
     if not user_b:
-        user_b = User(email="user_b@test.com", password_hash=hash_password("Pass123!"), display_name="User B")
+        user_b = User(email="user_b@test.com", password_hash=hash_password("Pass123!"), display_name="User B", status="active")
         db.add(user_b)
-        db.commit()
-        db.refresh(user_b)
+        db.flush()
+    wl_b = db.query(AuthWhitelist).filter(AuthWhitelist.email == "user_b@test.com").first()
+    if not wl_b:
+        wl_b = AuthWhitelist(
+            id=str(uuid.uuid4()),
+            email="user_b@test.com",
+            status="active",
+            user_id=user_b.id,
+            created_by="test_setup",
+            activated_at=datetime.now(timezone.utc)
+        )
+        db.add(wl_b)
+    else:
+        wl_b.user_id = user_b.id
+        wl_b.status = "active"
+    db.commit()
+    db.refresh(user_b)
 
     # Recipe for User A
     recipe_yaml = """

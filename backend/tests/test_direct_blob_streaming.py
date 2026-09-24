@@ -2,8 +2,10 @@ import pytest
 import io
 from fastapi.testclient import TestClient
 from server import app
+import uuid
+from datetime import datetime, timezone
 from storage import storage
-from models import SessionLocal, User
+from models import SessionLocal, User, AuthWhitelist
 from auth import hash_password
 
 client = TestClient(app)
@@ -13,9 +15,24 @@ def auth_client():
     db = SessionLocal()
     u = db.query(User).filter(User.email == "storage_test@anclora.com").first()
     if not u:
-        u = User(email="storage_test@anclora.com", password_hash=hash_password("CleanSheet2026!"), display_name="Storage User")
+        u = User(email="storage_test@anclora.com", password_hash=hash_password("CleanSheet2026!"), display_name="Storage User", status="active")
         db.add(u)
-        db.commit()
+        db.flush()
+    wl = db.query(AuthWhitelist).filter(AuthWhitelist.email == "storage_test@anclora.com").first()
+    if not wl:
+        wl = AuthWhitelist(
+            id=str(uuid.uuid4()),
+            email="storage_test@anclora.com",
+            status="active",
+            user_id=u.id,
+            created_by="test_setup",
+            activated_at=datetime.now(timezone.utc)
+        )
+        db.add(wl)
+    else:
+        wl.user_id = u.id
+        wl.status = "active"
+    db.commit()
     db.close()
     c = TestClient(app)
     c.post("/api/auth/login", json={"email": "storage_test@anclora.com", "password": "CleanSheet2026!"})

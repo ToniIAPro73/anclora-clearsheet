@@ -121,13 +121,31 @@ def test_stream_parsing_csv():
         lines.append(f"01/05/2026,\"{i+1}.000,50\"")
     content = "\n".join(lines).encode("utf-8")
 
+    import uuid
+    from datetime import datetime, timezone
+    from models import AuthWhitelist
     db = SessionLocal()
     u = db.query(User).filter(User.email == "stream_tester@anclora.com").first()
     if not u:
-        u = User(email="stream_tester@anclora.com", password_hash=hash_password("CleanSheet2026!"), display_name="Stream Tester")
+        u = User(email="stream_tester@anclora.com", password_hash=hash_password("CleanSheet2026!"), display_name="Stream Tester", status="active")
         db.add(u)
-        db.commit()
-        db.refresh(u)
+        db.flush()
+    wl = db.query(AuthWhitelist).filter(AuthWhitelist.email == "stream_tester@anclora.com").first()
+    if not wl:
+        wl = AuthWhitelist(
+            id=str(uuid.uuid4()),
+            email="stream_tester@anclora.com",
+            status="active",
+            user_id=u.id,
+            created_by="test_setup",
+            activated_at=datetime.now(timezone.utc)
+        )
+        db.add(wl)
+    else:
+        wl.user_id = u.id
+        wl.status = "active"
+    db.commit()
+    db.refresh(u)
     from auth import create_access_token
     token = create_access_token(u.id, u.email)
     db.close()

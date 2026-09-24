@@ -33,6 +33,8 @@ def create_active_user(db, email, password="TestPassword123!"):
         db.add(user)
         db.flush()
 
+    wl = db.query(AuthWhitelist).filter(AuthWhitelist.email == email).first()
+    if not wl:
         wl = AuthWhitelist(
             id=str(uuid.uuid4()),
             email=email,
@@ -42,8 +44,11 @@ def create_active_user(db, email, password="TestPassword123!"):
             activated_at=datetime.now(timezone.utc)
         )
         db.add(wl)
-        db.commit()
-        db.refresh(user)
+    else:
+        wl.user_id = user.id
+        wl.status = "active"
+    db.commit()
+    db.refresh(user)
     return user
 
 def auth_headers(user):
