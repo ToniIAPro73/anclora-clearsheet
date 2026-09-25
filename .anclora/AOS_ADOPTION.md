@@ -28,3 +28,22 @@ Governance level: GL-1
 
 Review this declaration if the database provider, authentication model, branch
 promotion model, QA model, or deployment platform changes.
+
+
+## Adopción de Gobernanza QA Proporcional
+
+- PROPORTIONAL_QA_CONTRACT_ADOPTED=true
+- BATCHED_VALIDATION_CONTRACT_ADOPTED=true
+- QA_MODE_DEFAULT=AUTO
+- QA_OVERRIDE_MODEL_ADOPTED=true
+- WORKSPACE_QA_POLICY_AUTHORITY=ANCLORA_WORKSPACE_AGENT_POLICY.md
+
+
+
+## Historial de adopción
+
+| Fecha | Versión | Cambio | Owner |
+| --- | --- | --- | --- |
+| 2026-09-16 | v0.2.0 | Declaración inicial de adopción AOS. | ToniIAPro73 |
+| 2026-09-25 | v2.0 | Adopción de política canónica de QA proporcional, cadencia de puertas por lotes (BATCHED) y modelo de overrides explícitos. | ToniIAPro73 |
+
